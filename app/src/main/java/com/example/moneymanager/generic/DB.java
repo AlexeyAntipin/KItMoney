@@ -1,5 +1,15 @@
 package com.example.moneymanager.generic;
 
+import android.annotation.SuppressLint;
+import android.database.Cursor;
+
+import com.example.moneymanager.model.Account;
+import com.example.moneymanager.model.AccountCategory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -39,5 +49,69 @@ public class DB {
         );
 
         Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void AddCommon() throws InterruptedException {
+        Connections.acquire();
+
+        Registry.DB.execSQL("INSERT INTO account_category (title, code) VALUES ('Наличные счета', 'cash')");
+        Registry.DB.execSQL("INSERT INTO account_category (title, code) VALUES ('Карточные счета', 'cards')");
+
+        Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('RUB', 'Рубль')");
+        Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('USD', 'Доллар')");
+        Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('EUR', 'Евро')");
+
+        Cursor result = Registry.DB.rawQuery("SELECT id FROM currency WHERE title = 'RUB'", null);
+        result.moveToFirst();
+        int rub_id = result.getInt(0);
+
+        result = Registry.DB.rawQuery("SELECT id FROM account_category WHERE code = 'cash'", null);
+        result.moveToFirst();
+        int cash_id = result.getInt(0);
+
+        Registry.DB.execSQL(
+                String.format(
+                        "INSERT INTO account (title, category, currency, balance) VALUES ('Левый карман', '%d', '%d', '123.56')",
+                        rub_id,
+                        cash_id)
+        );
+
+        Registry.DB.execSQL(
+                String.format(
+                        "INSERT INTO account (title, category, currency, balance) VALUES ('Правый карман', '%d', '%d', '233.78')",
+                        rub_id,
+                        cash_id)
+        );
+
+        Connections.release();
+    }
+
+    public static List<AccountCategory> GetAccounts() throws InterruptedException {
+        Map<Integer, AccountCategory> accountCategories = new HashMap<>();
+
+        Connections.acquire();
+        Cursor result = Registry.DB.rawQuery("SELECT ac.id, ac.title AS ac_title, c.title AS c_title, a.balance, a.title AS a_title " +
+                "FROM account a LEFT JOIN currency c ON a.currency = c.id " +
+                "LEFT JOIN account_category ac ON a.category = ac.id", null);
+        Connections.release();
+        if (result.moveToFirst()){
+            do{
+                int category_id = result.getInt(result.getColumnIndex("id"));
+
+                Account account = new Account();
+                account.balance = result.getDouble(result.getColumnIndex("balance"));
+                account.title = result.getString(result.getColumnIndex("a_title"));
+                account.currency = result.getString(result.getColumnIndex("c_title"));
+
+                if (!accountCategories.containsKey(category_id)){
+                    accountCategories.put(category_id, new AccountCategory());
+                }
+                accountCategories.get(category_id).title = result.getString(result.getColumnIndex("ac_title"));
+                accountCategories.get(category_id).accounts.add(account);
+            }while(result.moveToNext());
+        }
+
+        return new ArrayList<>(accountCategories.values());
     }
 }

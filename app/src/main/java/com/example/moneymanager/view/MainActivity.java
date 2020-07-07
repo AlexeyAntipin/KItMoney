@@ -5,6 +5,9 @@ import android.view.Menu;
 
 import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
+import com.example.moneymanager.generic.Registry;
+import com.example.moneymanager.generic.SP;
+import com.example.moneymanager.model.AccountCategory;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.navigation.NavController;
@@ -15,6 +18,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
@@ -23,11 +28,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Registry.baseContext = getBaseContext();
         try {
             DB.Init();
+            if (!SP.Is_Installed()){
+                DB.AddCommon();
+                SP.Set_Installed(true);
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
 
 
         setContentView(R.layout.activity_main);
