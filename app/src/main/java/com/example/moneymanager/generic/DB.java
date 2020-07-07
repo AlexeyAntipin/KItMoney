@@ -112,6 +112,21 @@ public class DB {
             }while(result.moveToNext());
         }
 
+        Connections.acquire();
+        result = Registry.DB.rawQuery("SELECT ac.id, ac.title AS ac_title FROM account_category ac", null);
+
+        if (result.moveToFirst()){
+            do{
+                int category_id = result.getInt(result.getColumnIndex("id"));
+
+                if (!accountCategories.containsKey(category_id)){
+                    accountCategories.put(category_id, new AccountCategory());
+                }
+                accountCategories.get(category_id).title = result.getString(result.getColumnIndex("ac_title"));
+            }while(result.moveToNext());
+        }
+        Connections.release();
+
         return new ArrayList<>(accountCategories.values());
     }
 }

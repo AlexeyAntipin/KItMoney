@@ -9,28 +9,18 @@
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="0px"
-        android:layout_weight="0.07"
+        android:layout_weight="0.15"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:text="Button" />
+        android:text="Добавить новую категорию" />
 
-    <androidx.cardview.widget.CardView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="0px"
-        android:layout_weight="0.3"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="wrap_content"
+        android:layout_weight="0.75">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="0px"
-        android:layout_weight="0.3"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"/>
+    </androidx.recyclerview.widget.RecyclerView>
+
 </LinearLayout>

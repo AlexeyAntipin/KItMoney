@@ -4,4 +4,5 @@ public class Account {
     public String title;
     public String currency;
     public double balance;
+
 }
