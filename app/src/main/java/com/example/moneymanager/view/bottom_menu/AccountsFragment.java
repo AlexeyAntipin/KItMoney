@@ -1,4 +1,4 @@
-package com.example.moneymanager.ui;
+package com.example.moneymanager.view.bottom_menu;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;

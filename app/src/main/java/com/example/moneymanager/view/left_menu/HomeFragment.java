@@ -1,21 +1,16 @@
-package com.example.moneymanager.ui.home;
+package com.example.moneymanager.view.left_menu;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
 
 import com.example.moneymanager.R;
-import com.example.moneymanager.ui.AccountsFragment;
+import com.example.moneymanager.view.bottom_menu.AccountsFragment;
+import com.example.moneymanager.view.bottom_menu.MainFragment;
 import com.google.android.material.tabs.TabLayout;
 
 public class HomeFragment extends Fragment {
@@ -24,18 +19,34 @@ public class HomeFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_home, container, false);
 
+        getFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_host, new MainFragment())
+                .commit();
+
         TabLayout tabLayout = root.findViewById(R.id.tabLayout);
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
+                int position = tab.getPosition();
 
-                if (tab.getPosition() == 1) {
-                    Fragment fragment = new AccountsFragment();
-                    FragmentTransaction ft = getFragmentManager().beginTransaction();
-                    ft.add(R.id.nav_host_fragment, fragment);
-                    ft.commit();
+                Fragment fragment;
+                switch (position) {
+                    case 0:
+                        fragment = new MainFragment();
+                        break;
+                    case 1:
+                        fragment = new AccountsFragment();
+                        break;
+                    default:
+                        return;
                 }
+
+                getFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_host, fragment)
+                        .commit();
             }
 
             @Override
