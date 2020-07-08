@@ -109,6 +109,7 @@ public class DB {
                 }
                 accountCategories.get(category_id).title = result.getString(result.getColumnIndex("ac_title"));
                 accountCategories.get(category_id).accounts.add(account);
+                accountCategories.get(category_id).id = category_id;
             }while(result.moveToNext());
         }
 
