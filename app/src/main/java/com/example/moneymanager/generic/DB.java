@@ -51,6 +51,38 @@ public class DB {
         Connections.release();
     }
 
+    public static void Drop() throws InterruptedException {
+        Connections.acquire();
+
+        Registry.DB.execSQL("DROP TABLE  account_category");
+        Registry.DB.execSQL("DROP TABLE  currency");
+        Registry.DB.execSQL("DROP TABLE  account");
+
+        Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void AddAccount(Account account, Integer category_id) throws InterruptedException {
+        DB.Connections.acquire();
+
+        Cursor result = Registry.DB.rawQuery(
+                String.format("SELECT id FROM currency WHERE title='%s'", account.currency), null);
+
+        result.moveToFirst();
+        int currency_id = result.getInt(0);
+
+        String query = String.format(
+                "INSERT INTO account (title, category, currency, balance) VALUES ('%s', '%d', '%d', '%f')",
+                account.title,
+                category_id,
+                currency_id,
+                account.balance
+        );
+
+        Registry.DB.execSQL(query);
+        DB.Connections.release();
+    }
+
     @SuppressLint("DefaultLocale")
     public static void AddCommon() throws InterruptedException {
         Connections.acquire();
@@ -95,8 +127,8 @@ public class DB {
                 "FROM account a LEFT JOIN currency c ON a.currency = c.id " +
                 "LEFT JOIN account_category ac ON a.category = ac.id", null);
         Connections.release();
-        if (result.moveToFirst()){
-            do{
+        if (result.moveToFirst()) {
+            do {
                 int category_id = result.getInt(result.getColumnIndex("id"));
 
                 Account account = new Account();
@@ -104,27 +136,28 @@ public class DB {
                 account.title = result.getString(result.getColumnIndex("a_title"));
                 account.currency = result.getString(result.getColumnIndex("c_title"));
 
-                if (!accountCategories.containsKey(category_id)){
+                if (!accountCategories.containsKey(category_id)) {
                     accountCategories.put(category_id, new AccountCategory());
                 }
                 accountCategories.get(category_id).title = result.getString(result.getColumnIndex("ac_title"));
                 accountCategories.get(category_id).accounts.add(account);
                 accountCategories.get(category_id).id = category_id;
-            }while(result.moveToNext());
+            } while (result.moveToNext());
         }
 
         Connections.acquire();
         result = Registry.DB.rawQuery("SELECT ac.id, ac.title AS ac_title FROM account_category ac", null);
 
-        if (result.moveToFirst()){
-            do{
+        if (result.moveToFirst()) {
+            do {
                 int category_id = result.getInt(result.getColumnIndex("id"));
 
-                if (!accountCategories.containsKey(category_id)){
+                if (!accountCategories.containsKey(category_id)) {
                     accountCategories.put(category_id, new AccountCategory());
                 }
                 accountCategories.get(category_id).title = result.getString(result.getColumnIndex("ac_title"));
-            }while(result.moveToNext());
+                accountCategories.get(category_id).id = category_id;
+            } while (result.moveToNext());
         }
         Connections.release();
 

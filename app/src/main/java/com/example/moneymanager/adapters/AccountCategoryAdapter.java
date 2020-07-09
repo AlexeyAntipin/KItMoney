@@ -2,7 +2,6 @@ package com.example.moneymanager.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Handler;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,11 +20,12 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
+import com.example.moneymanager.generic.DB;
+import com.example.moneymanager.generic.Handlers;
 import com.example.moneymanager.generic.SP;
 import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
 
-import java.lang.ref.SoftReference;
 import java.util.List;
 
 import static android.view.View.GONE;
@@ -35,13 +35,11 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     private LayoutInflater inflater;
     private List<AccountCategory> accounts;
     private Context context;
-    private SoftReference<Handler> softReference;
 
-    public AccountCategoryAdapter(LayoutInflater inflater, List<AccountCategory> accounts, Context context, SoftReference<Handler> softReference) {
+    public AccountCategoryAdapter(Context context, LayoutInflater inflater, List<AccountCategory> accounts) {
+        this.context = context;
         this.inflater = inflater;
         this.accounts = accounts;
-        this.context = context;
-        this.softReference = softReference;
     }
 
     @NonNull
@@ -54,81 +52,104 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     @Override
     public void onBindViewHolder(@NonNull final AccountCategoryAdapter.ViewHolder holder, final int position) {
         holder.title.setText(accounts.get(position).title);
+
         holder.linearLayout.addView(drawLine());
         for (Account account : accounts.get(position).accounts) {
             holder.linearLayout.addView(addLinearLayout(account));
             holder.linearLayout.addView(drawLine());
         }
-        final Button button = addAccountButton();
-        LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.addView(button);
-        linearLayout.setPadding(16, 24,16,24);
-        holder.linearLayout.addView(linearLayout);
+
+        final Button button = getAccountButton();
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 button.setVisibility(GONE);
-                holder.linearLayout.addView(addInput());
-                LinearLayout linearLayout = addButtons();
-                linearLayout.setPadding(16, 24,16,24);
-                holder.linearLayout.addView(linearLayout);
-                @SuppressLint("ResourceType") Button b = holder.linearLayout.findViewById(2);
-                @SuppressLint("ResourceType") Button cancel = holder.linearLayout.findViewById(3);
-                @SuppressLint("ResourceType") final Spinner spinner = holder.linearLayout.findViewById(6);
                 final Account account = new Account();
-                spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+                //region Создать поля для ввода
+                View[] views = getInputFields();
+                final EditText title         = (EditText) views[0];
+                final EditText balance       = (EditText) views[1];
+                final Spinner currencySpinner = (Spinner) views[2];
+                currencySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     public void onItemSelected(AdapterView<?> parent,
                                                View itemSelected, int position, long selectedId) {
                         String[] arr = context.getResources().getStringArray(R.array.currency);
                         String cur = arr[position];
                         account.currency = cur;
                     }
+
                     public void onNothingSelected(AdapterView<?> parent) {
                     }
                 });
-                b.setOnClickListener(new View.OnClickListener() {
+
+                LinearLayout inputLinearLayout = new LinearLayout(context);
+                inputLinearLayout.setPadding(16, 4, 16, 4);
+                inputLinearLayout.addView(title);
+                inputLinearLayout.addView(balance);
+                inputLinearLayout.addView(currencySpinner);
+
+                holder.linearLayout.addView(inputLinearLayout);
+
+                //endregion
+
+                //region Создать кнопки добавить и отмена
+
+                //Кнопка добавить
+                Button[] headerButtons = getHeaderButtons();
+                headerButtons[0].setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        @SuppressLint("ResourceType") EditText title = holder.linearLayout.findViewById(4);
-                        @SuppressLint("ResourceType") EditText balance = holder.linearLayout.findViewById(5);
                         if (title.getText().toString().equals("") || balance.getText().toString().equals("")) {
                             Toast.makeText(context, "Заполните все поля", Toast.LENGTH_LONG).show();
                         } else {
                             String t = title.getText().toString();
-                            Double bal = new Double(balance.getText().toString());
+                            double bal = Double.parseDouble(balance.getText().toString());
                             account.title = t;
                             account.balance = bal;
+
+                            try {
+                                DB.AddAccount(account, accounts.get(position).id);
+                                Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                             SP.SetNewAccount(account, position);
-                            softReference.get().sendEmptyMessage(1);
                         }
                     }
                 });
-                cancel.setOnClickListener(new View.OnClickListener() {
+
+                // Кнопка отмена
+                headerButtons[1].setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        softReference.get().sendEmptyMessage(2);
+                        Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_Cancel);
                     }
                 });
+
+                LinearLayout headerLinearLayout = new LinearLayout(context);
+
+                headerLinearLayout.addView(headerButtons[0]);
+                headerLinearLayout.addView(headerButtons[1]);
+                headerLinearLayout.setPadding(16, 24, 16, 24);
+
+                holder.linearLayout.addView(headerLinearLayout);
+                //endregion
             }
         });
+
+        LinearLayout linearLayout = new LinearLayout(context);
+
+        linearLayout.addView(button);
+        linearLayout.setPadding(16, 24, 16, 24);
+
+        holder.linearLayout.addView(linearLayout);
     }
 
     @Override
     public int getItemCount() {
         return accounts.size();
-    }
-
-    class ViewHolder extends RecyclerView.ViewHolder {
-        final TextView title;
-        final LinearLayout linearLayout;
-        final Button addCategory;
-
-        ViewHolder(View view) {
-            super(view);
-            title = view.findViewById(R.id.title);
-            linearLayout = view.findViewById(R.id.linearLayout);
-            addCategory = view.findViewById(R.id.addCategory);
-        }
     }
 
     @SuppressLint("ResourceAsColor")
@@ -169,89 +190,83 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     }
 
     @SuppressLint("ResourceType")
-    public Button addAccountButton() {
+    public Button getAccountButton() {
         Button button = new Button(context);
-        button.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        button.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        button.setText("Добавить новый счёт");
+        button.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        button.setBackgroundResource(R.drawable.rounded_button_for_new_account);
         button.setId(1);
         button.setPadding(16, 0, 16, 0);
-        button.setBackgroundResource(R.drawable.rounded_button_for_new_account);
+        button.setText("Добавить новый счёт");
+        button.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+
         return button;
     }
 
-    @SuppressLint("ResourceType")
-    public LinearLayout addInput() {
-        LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.setWeightSum(20);
-        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
-        linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    public View[] getInputFields(){
         EditText title = new EditText(context);
+        title.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        10));
+        title.setHint("Название");
+        title.setInputType(InputType.TYPE_CLASS_TEXT);
+        title.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
+
         EditText balance = new EditText(context);
-        Spinner spinner = new Spinner(context);
-        title.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 10));
-        balance.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 4));
-        spinner.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 6));
+        balance.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        4));
+        balance.setHint("Баланс");
+        balance.setInputType(InputType.TYPE_CLASS_NUMBER);
+        balance.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
+
+        Spinner currencySpinner = new Spinner(context);
+        currencySpinner.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        6));
         ArrayAdapter<?> adapter = ArrayAdapter.createFromResource(
                 context, R.array.currency, R.layout.support_simple_spinner_dropdown_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-        title.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
-        balance.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
-        title.setHint("Название");
-        title.setInputType(InputType.TYPE_CLASS_TEXT);
-        balance.setHint("Баланс");
-        balance.setInputType(InputType.TYPE_CLASS_NUMBER);
-        title.setId(4);
-        balance.setId(5);
-        spinner.setId(6);
-        linearLayout.setPadding(16, 4, 16, 4);
-        linearLayout.addView(title);
-        linearLayout.addView(balance);
-        linearLayout.addView(spinner);
-        return linearLayout;
+        currencySpinner.setAdapter(adapter);
+
+        return new View[] {title, balance, currencySpinner};
     }
 
-    @SuppressLint("ResourceType")
-    public LinearLayout addButtons() {
-        LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.setWeightSum(10);
-
-        LinearLayout layout1 = new LinearLayout(context);
-        LinearLayout layout2 = new LinearLayout(context);
-        layout1.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 6));
-        layout1.setPadding(0, 0, 8, 0);
-        layout2.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 4));
-        layout2.setPadding(8, 0, 0, 0);
-
+    public Button[] getHeaderButtons() {
         Button add = new Button(context);
-        Button cancel = new Button(context);
-        add.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        cancel.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        add.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        add.setText("Добавить");
-        add.setId(2);
-        add.setPadding(16, 8, 16, 16);
+        add.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        6f));
+
         add.setBackgroundResource(R.drawable.rounded_button_for_new_account);
-        cancel.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        cancel.setText("Отмена");
-        cancel.setId(3);
-        cancel.setPadding(16, 8, 16, 16);
+        add.setPadding(16, 8, 16, 16);
+        add.setText("Добавить");
+        add.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+
+        Button cancel = new Button(context);
+        cancel.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        4f));
+
         cancel.setBackgroundResource(R.drawable.rounded_button_for_new_account);
-        layout1.addView(add);
-        layout2.addView(cancel);
-        linearLayout.addView(layout1);
-        linearLayout.addView(layout2);
-        return linearLayout;
+        cancel.setPadding(16, 8, 16, 16);
+        cancel.setText("Отмена");
+        cancel.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+
+        return new Button[]{add, cancel};
     }
 
     @SuppressLint("ResourceAsColor")
@@ -263,5 +278,18 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         linearLayout.setPadding(32, 0, 32, 8);
         linearLayout.addView(view);
         return linearLayout;
+    }
+
+    class ViewHolder extends RecyclerView.ViewHolder {
+        final TextView title;
+        final LinearLayout linearLayout;
+        final Button addCategory;
+
+        ViewHolder(View view) {
+            super(view);
+            title = view.findViewById(R.id.title);
+            linearLayout = view.findViewById(R.id.linearLayout);
+            addCategory = view.findViewById(R.id.addCategory);
+        }
     }
 }
