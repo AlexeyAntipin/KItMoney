@@ -54,8 +54,10 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     @Override
     public void onBindViewHolder(@NonNull final AccountCategoryAdapter.ViewHolder holder, final int position) {
         holder.title.setText(accounts.get(position).title);
+        holder.linearLayout.addView(drawLine());
         for (Account account : accounts.get(position).accounts) {
             holder.linearLayout.addView(addLinearLayout(account));
+            holder.linearLayout.addView(drawLine());
         }
         final Button button = addAccountButton();
         LinearLayout linearLayout = new LinearLayout(context);
@@ -132,7 +134,7 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     @SuppressLint("ResourceAsColor")
     public LinearLayout addLinearLayout(Account account) {
         LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.setWeightSum(20);
+        linearLayout.setWeightSum(28);
         linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -141,25 +143,28 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         TextView balance = new TextView(context);
         ImageButton imageButton = new ImageButton(context);
         title.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 12));
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 16));
         balance.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 6));
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 10));
         imageButton.setLayoutParams(new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.MATCH_PARENT, 2));
         title.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
         balance.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_END);
         title.setText(account.title);
         balance.setText(account.balance + " " + account.currency);
-        imageButton.setImageResource(R.drawable.delete_account);
         imageButton.setBackgroundColor(R.color.cardViewColor);
+        imageButton.setBackgroundResource(R.drawable.delete_account);
         title.setPadding(16, 4, 16, 4);
         balance.setPadding(16, 4, 16, 4);
         imageButton.setPadding(4, 4, 4, 4);
         title.setTextSize(16);
         balance.setTextSize(16);
+        //title.setPaintFlags(title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+        //balance.setPaintFlags(balance.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         linearLayout.addView(title);
         linearLayout.addView(balance);
         linearLayout.addView(imageButton);
+        linearLayout.setPadding(16, 0, 24, 0);
         return linearLayout;
     }
 
@@ -171,7 +176,7 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         button.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         button.setText("Добавить новый счёт");
         button.setId(1);
-        button.setPadding(16, 8, 16, 16);
+        button.setPadding(16, 0, 16, 0);
         button.setBackgroundResource(R.drawable.rounded_button_for_new_account);
         return button;
     }
@@ -246,6 +251,17 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         layout2.addView(cancel);
         linearLayout.addView(layout1);
         linearLayout.addView(layout2);
+        return linearLayout;
+    }
+
+    @SuppressLint("ResourceAsColor")
+    public LinearLayout drawLine() {
+        View view = new View(context);
+        view.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        view.setBackgroundColor(R.color.colorBlack);
+        LinearLayout linearLayout = new LinearLayout(context);
+        linearLayout.setPadding(32, 0, 32, 8);
+        linearLayout.addView(view);
         return linearLayout;
     }
 }

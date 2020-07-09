@@ -78,24 +78,6 @@ public class AccountsFragment extends Fragment {
         AccountCategoryAdapter aca = new AccountCategoryAdapter(inflater, accounts, getContext(), new SoftReference<>(eventHandler));
         recyclerView.setAdapter(aca);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        /*SharedPreferences.OnSharedPreferenceChangeListener listener =
-                new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                AccountWithPosition awp = SP.GetNewAccount();
-                int position = awp.position;
-                Account account = awp.account;
-                if (sharedPreferences.contains("title")) {
-                    finalAccounts.get(position).accounts.add(account);
-                    AccountCategoryAdapter aca =
-                            new AccountCategoryAdapter(getLayoutInflater(), finalAccounts, getContext());
-                    recyclerView.setAdapter(aca);
-                    recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-                    SP.DeleteNewAccount();
-                }
-            }
-        };
-        mSettings.registerOnSharedPreferenceChangeListener(listener);*/
         return root;
     }
 }
