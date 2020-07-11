@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.InputType;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -17,14 +18,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
-import com.example.moneymanager.generic.SP;
 import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
+import com.example.moneymanager.view.bottom_menu.AccountsFragment;
 
 import java.util.List;
 
@@ -36,7 +38,8 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     private List<AccountCategory> accounts;
     private Context context;
 
-    public AccountCategoryAdapter(Context context, LayoutInflater inflater, List<AccountCategory> accounts) {
+    public AccountCategoryAdapter(Context context, LayoutInflater inflater,
+                                  List<AccountCategory> accounts) {
         this.context = context;
         this.inflater = inflater;
         this.accounts = accounts;
@@ -53,10 +56,31 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     public void onBindViewHolder(@NonNull final AccountCategoryAdapter.ViewHolder holder, final int position) {
         holder.title.setText(accounts.get(position).title);
 
+        holder.itemView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    AccountsFragment.onStartDrag(holder);
+                }
+                return false;
+            }
+        });
         holder.linearLayout.addView(drawLine());
-        for (Account account : accounts.get(position).accounts) {
-            holder.linearLayout.addView(addLinearLayout(account));
+        for (final Account account : accounts.get(position).accounts) {
+            View[] view = addLinearLayout(account);
+            LinearLayout linearLayout = (LinearLayout) view[0];
+            for (int i = 1; i < view.length; i++) {
+                linearLayout.addView(view[i]);
+            }
+            holder.linearLayout.addView(linearLayout);
             holder.linearLayout.addView(drawLine());
+            view[3].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    DB.DeleteAccount(account.id);
+                    Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
+                }
+            });
         }
 
         final Button button = getAccountButton();
@@ -115,7 +139,6 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-                            SP.SetNewAccount(account, position);
                         }
                     }
                 });
@@ -145,6 +168,7 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         linearLayout.setPadding(16, 24, 16, 24);
 
         holder.linearLayout.addView(linearLayout);
+
     }
 
     @Override
@@ -153,7 +177,7 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     }
 
     @SuppressLint("ResourceAsColor")
-    public LinearLayout addLinearLayout(Account account) {
+    public View[] addLinearLayout(Account account) {
         LinearLayout linearLayout = new LinearLayout(context);
         linearLayout.setWeightSum(28);
         linearLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -182,11 +206,8 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
         balance.setTextSize(16);
         //title.setPaintFlags(title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
         //balance.setPaintFlags(balance.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        linearLayout.addView(title);
-        linearLayout.addView(balance);
-        linearLayout.addView(imageButton);
         linearLayout.setPadding(16, 0, 24, 0);
-        return linearLayout;
+        return new View[] {linearLayout, title, balance, imageButton};
     }
 
     @SuppressLint("ResourceType")
@@ -291,5 +312,16 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
             linearLayout = view.findViewById(R.id.linearLayout);
             addCategory = view.findViewById(R.id.addCategory);
         }
+    }
+
+    public void onItemDismiss(int position) {
+        accounts.remove(position);
+        notifyItemRemoved(position);
+    }
+
+    public void onItemMove(int fromPosition, int toPosition) {
+        AccountCategory prev = accounts.remove(fromPosition);
+        accounts.add(toPosition > fromPosition ? toPosition - 1 : toPosition, prev);
+        notifyItemMoved(fromPosition, toPosition);
     }
 }

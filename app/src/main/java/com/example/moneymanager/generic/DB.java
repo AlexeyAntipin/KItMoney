@@ -84,6 +84,11 @@ public class DB {
     }
 
     @SuppressLint("DefaultLocale")
+    public static void DeleteAccount(Integer id) {
+        Registry.DB.execSQL(String.format("DELETE FROM account WHERE id='%d'", id));
+    }
+
+    @SuppressLint("DefaultLocale")
     public static void AddCommon() throws InterruptedException {
         Connections.acquire();
 
@@ -123,7 +128,7 @@ public class DB {
         Map<Integer, AccountCategory> accountCategories = new HashMap<>();
 
         Connections.acquire();
-        Cursor result = Registry.DB.rawQuery("SELECT ac.id, ac.title AS ac_title, c.title AS c_title, a.balance, a.title AS a_title " +
+        Cursor result = Registry.DB.rawQuery("SELECT ac.id, a.id AS a_id, ac.title AS ac_title, c.title AS c_title, a.balance, a.title AS a_title " +
                 "FROM account a LEFT JOIN currency c ON a.currency = c.id " +
                 "LEFT JOIN account_category ac ON a.category = ac.id", null);
         Connections.release();
@@ -135,6 +140,7 @@ public class DB {
                 account.balance = result.getDouble(result.getColumnIndex("balance"));
                 account.title = result.getString(result.getColumnIndex("a_title"));
                 account.currency = result.getString(result.getColumnIndex("c_title"));
+                account.id = result.getInt(result.getColumnIndex("a_id"));
 
                 if (!accountCategories.containsKey(category_id)) {
                     accountCategories.put(category_id, new AccountCategory());
