@@ -3,6 +3,7 @@ package com.example.moneymanager.adapters;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.InputType;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -18,7 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
@@ -56,10 +56,19 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
     public void onBindViewHolder(@NonNull final AccountCategoryAdapter.ViewHolder holder, final int position) {
         holder.title.setText(accounts.get(position).title);
 
-        holder.itemView.setOnTouchListener(new View.OnTouchListener() {
+        /*holder.itemView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    AccountsFragment.onStartDrag(holder);
+                }
+                return false;
+            }
+        });*/
+        holder.itemView.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     AccountsFragment.onStartDrag(holder);
                 }
                 return false;
@@ -77,7 +86,11 @@ public class AccountCategoryAdapter extends RecyclerView.Adapter<AccountCategory
             view[3].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    DB.DeleteAccount(account.id);
+                    try {
+                        DB.DeleteAccount(account.id);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
                 }
             });

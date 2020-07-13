@@ -5,6 +5,7 @@ import android.database.Cursor;
 
 import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
+import com.example.moneymanager.model.SpendCategory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,18 @@ public class DB {
                         "balance REAL )"
         );
 
+        Registry.DB.execSQL(
+                "CREATE TABLE IF NOT EXISTS spend_category (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "title TEXT, code TEXT, spend REAL);"
+        );
+
+        Registry.DB.execSQL(
+                "CREATE TABLE IF NOT EXISTS transactions (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, " +
+                        "spend_category_id INTEGER, comment TEXT, sum REAL, type TEXT);"
+        );
+
         Connections.release();
     }
 
@@ -84,8 +97,31 @@ public class DB {
     }
 
     @SuppressLint("DefaultLocale")
-    public static void DeleteAccount(Integer id) {
+    public static void DeleteAccount(Integer id) throws InterruptedException {
+        DB.Connections.acquire();
         Registry.DB.execSQL(String.format("DELETE FROM account WHERE id='%d'", id));
+        DB.Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void AddCategoryAccount(String title) throws InterruptedException {
+        DB.Connections.acquire();
+
+        String query = String.format(
+                "INSERT INTO account_category (title) VALUES ('%s')",
+                title
+        );
+
+        Registry.DB.execSQL(query);
+        DB.Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void DeleteCategoryAccount(Integer id) throws InterruptedException {
+        DB.Connections.acquire();
+        Registry.DB.execSQL(String.format("DELETE FROM account WHERE category='%d'", id));
+        Registry.DB.execSQL(String.format("DELETE FROM account_category WHERE id='%d'", id));
+        DB.Connections.release();
     }
 
     @SuppressLint("DefaultLocale")
@@ -98,6 +134,10 @@ public class DB {
         Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('RUB', 'Рубль')");
         Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('USD', 'Доллар')");
         Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('EUR', 'Евро')");
+
+        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Продукты питания', 'food', 0)");
+        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Кафе и рестораны', 'restaurants', 0)");
+        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Здоровье и медицина', 'health', 0)");
 
         Cursor result = Registry.DB.rawQuery("SELECT id FROM currency WHERE title = 'RUB'", null);
         result.moveToFirst();
@@ -168,5 +208,35 @@ public class DB {
         Connections.release();
 
         return new ArrayList<>(accountCategories.values());
+    }
+
+    public static List<SpendCategory> GetSpendCategories() throws InterruptedException {
+        Connections.acquire();
+        List<SpendCategory> spendCategoryList = new ArrayList<>();
+        Cursor result = Registry.DB.rawQuery("SELECT * FROM spend_category", null);
+        if (result.moveToFirst()) {
+            do {
+                SpendCategory spendCategory = new SpendCategory();
+                spendCategory.spend = result.getInt(result.getColumnIndex("spend"));
+                spendCategory.title = result.getString(result.getColumnIndex("title"));
+                spendCategoryList.add(spendCategory);
+            } while (result.moveToNext());
+        }
+        Connections.release();
+        return spendCategoryList;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void AddSpendCategory(SpendCategory spendCategory) throws InterruptedException {
+        DB.Connections.acquire();
+
+        String query = String.format(
+                "INSERT INTO spend_category (title, spend) VALUES ('%s', '%f')",
+                spendCategory.title,
+                0
+        );
+
+        Registry.DB.execSQL(query);
+        DB.Connections.release();
     }
 }

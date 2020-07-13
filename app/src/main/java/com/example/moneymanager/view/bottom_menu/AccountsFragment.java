@@ -1,5 +1,6 @@
 package com.example.moneymanager.view.bottom_menu;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -10,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +26,7 @@ import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
 import com.example.moneymanager.model.AccountCategory;
 import com.example.moneymanager.model.SimpleItemTouchHelperCallback;
+import com.example.moneymanager.model.SwipeHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +39,7 @@ public class AccountsFragment extends Fragment {
     LinearLayout linearLayout;
     static ItemTouchHelper itemTouchHelper;
     ItemTouchHelper.Callback callback;
+    SwipeHelper swipeHelper;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -58,21 +62,21 @@ public class AccountsFragment extends Fragment {
             public boolean handleMessage(@NonNull Message msg) {
                 switch (msg.what) {
                     case Handlers.redraw_OK:
-                        Log.d("MyLog", "redraw");
                         try {
-                            Log.d("MyLog", "try");
                             accounts = DB.GetAccounts();
                         } catch (InterruptedException e) {
                             Log.d("MyLog", e.toString());
                             e.printStackTrace();
                         }
-                        AccountCategoryAdapter aca =
+                        AccountCategoryAdapter aca2 =
                                 new AccountCategoryAdapter(getContext(), getLayoutInflater(), accounts);
-                        recyclerView.setAdapter(aca);
+                        recyclerView.setAdapter(aca2);
                         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-                        callback = new SimpleItemTouchHelperCallback(aca);
-                        itemTouchHelper = new ItemTouchHelper((ItemTouchHelper.Callback) callback);
+                        callback = new SimpleItemTouchHelperCallback(aca2);
+                        itemTouchHelper = new ItemTouchHelper(callback);
                         itemTouchHelper.attachToRecyclerView(recyclerView);
+                        swipeHelper.setRecyclerView(recyclerView);
+                        swipeHelper.attachSwipe();
                         break;
                     case Handlers.redraw_Cancel:
                         AccountCategoryAdapter aca1 =
@@ -80,8 +84,7 @@ public class AccountsFragment extends Fragment {
                         recyclerView.setAdapter(aca1);
                         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
                         callback = new SimpleItemTouchHelperCallback(aca1);
-                        itemTouchHelper = new ItemTouchHelper((ItemTouchHelper.Callback) callback);
-                        itemTouchHelper.attachToRecyclerView(recyclerView);
+                        itemTouchHelper = new ItemTouchHelper(callback);
                         break;
                 }
 
@@ -95,6 +98,35 @@ public class AccountsFragment extends Fragment {
         callback = new SimpleItemTouchHelperCallback(aca);
         itemTouchHelper = new ItemTouchHelper((ItemTouchHelper.Callback) callback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
+
+        swipeHelper = new SwipeHelper(getContext(), recyclerView) {
+            @Override
+            public void instantiateUnderlayButton(RecyclerView.ViewHolder viewHolder, List<UnderlayButton> underlayButtons) {
+                underlayButtons.add(new SwipeHelper.UnderlayButton(
+                        "",
+                        R.drawable.delete_category,
+                        Color.parseColor("#F03524"),
+                        new SwipeHelper.UnderlayButtonClickListener() {
+                            @Override
+                            public void onClick(int pos) throws InterruptedException {
+                                DB.DeleteCategoryAccount(accounts.get(pos).id);
+                                Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
+                            }
+                        }
+                ));
+
+                underlayButtons.add(new SwipeHelper.UnderlayButton(
+                        "",
+                        0,
+                        Color.parseColor("#EDD015"),
+                        new SwipeHelper.UnderlayButtonClickListener() {
+                            @Override
+                            public void onClick(int pos) {
+                            }
+                        }
+                ));
+            }
+        };
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -145,6 +177,40 @@ public class AccountsFragment extends Fragment {
                                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
                         ));
                         linearLayout.setBackgroundResource(R.color.colorBackground);
+                    }
+                });
+                view[2].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        EditText name = (EditText) view[0];
+                        String title = name.getText().toString();
+                        if (title.equals("")) {
+                            Toast.makeText(getContext(), "Введите название категории",
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        try {
+                            DB.AddCategoryAccount(title);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 0, 90));
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 0, 10);
+                        lp.setMargins(16, 24, 16, 0);
+                        linearLayout.setLayoutParams(lp);
+                        linearLayout.setWeightSum(15);
+                        linearLayout.setPadding(32, 0, 32, 0);
+                        for (int i = 0; i < view.length; i++) {
+                            view[i].setVisibility(View.GONE);
+                        }
+                        button.setVisibility(View.VISIBLE);
+                        button.setLayoutParams(new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
+                        ));
+                        linearLayout.setBackgroundResource(R.color.colorBackground);
+                        Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
                     }
                 });
             }
