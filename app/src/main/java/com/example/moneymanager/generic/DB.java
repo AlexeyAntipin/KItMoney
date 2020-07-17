@@ -6,6 +6,7 @@ import android.database.Cursor;
 import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
 import com.example.moneymanager.model.SpendCategory;
+import com.example.moneymanager.model.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -238,5 +239,108 @@ public class DB {
 
         Registry.DB.execSQL(query);
         DB.Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static void AddTransactions(Transaction transaction) throws InterruptedException {
+        DB.Connections.acquire();
+
+        String query = String.format(
+                "INSERT INTO transactions (account_id, spend_category_id, comment, sum, type) VALUES ('%d', '%d', '%s', '%f', '%s')",
+                transaction.account_id,
+                transaction.spend_category_id,
+                transaction.comment,
+                transaction.sum,
+                transaction.type
+        );
+
+        Registry.DB.execSQL(query);
+        DB.Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static List<Transaction> GetTransactionsByAccount(Integer account_id) throws InterruptedException {
+        DB.Connections.acquire();
+        List<Transaction> transactions = new ArrayList<>();
+        String query = String.format("SELECT * FROM transactions WHERE account_id = '%d'", account_id);
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Transaction transaction = new Transaction();
+                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
+                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.sum = result.getDouble(result.getColumnIndex("sum"));
+                transaction.comment = result.getString(result.getColumnIndex("comment"));
+                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.account_id = account_id;
+                transactions.add(transaction);
+            } while (result.moveToNext());
+        }
+        DB.Connections.release();
+        return transactions;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static List<Transaction> GetTransactionsBySpendCategory(Integer spend_category_id) throws InterruptedException {
+        DB.Connections.acquire();
+        List<Transaction> transactions = new ArrayList<>();
+        String query = String.format("SELECT * FROM transactions WHERE spend_category_id = '%d'", spend_category_id);
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Transaction transaction = new Transaction();
+                transaction.spend_category_id = spend_category_id;
+                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.sum = result.getDouble(result.getColumnIndex("sum"));
+                transaction.comment = result.getString(result.getColumnIndex("comment"));
+                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transactions.add(transaction);
+            } while (result.moveToNext());
+        }
+        DB.Connections.release();
+        return transactions;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static List<Transaction> GetAllTransactions() throws InterruptedException {
+        DB.Connections.acquire();
+        List<Transaction> transactions = new ArrayList<>();
+        Cursor result = Registry.DB.rawQuery("SELECT * FROM transactions", null);
+        if (result.moveToFirst()) {
+            do {
+                Transaction transaction = new Transaction();
+                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
+                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.sum = result.getDouble(result.getColumnIndex("sum"));
+                transaction.comment = result.getString(result.getColumnIndex("comment"));
+                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transactions.add(transaction);
+            } while (result.moveToNext());
+        }
+        DB.Connections.release();
+        return transactions;
+    }
+
+    public static List<Transaction> GetTransactionsByType(String type) throws InterruptedException {
+        DB.Connections.acquire();
+        List<Transaction> transactions = new ArrayList<>();
+        String query = String.format("SELECT * FROM transactions WHERE type = '%s'", type);
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Transaction transaction = new Transaction();
+                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
+                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.sum = result.getDouble(result.getColumnIndex("sum"));
+                transaction.comment = result.getString(result.getColumnIndex("comment"));
+                transaction.type = type;
+                transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transactions.add(transaction);
+            } while (result.moveToNext());
+        }
+        DB.Connections.release();
+        return transactions;
     }
 }

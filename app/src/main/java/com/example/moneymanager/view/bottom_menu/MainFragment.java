@@ -3,6 +3,8 @@ package com.example.moneymanager.view.bottom_menu;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
@@ -28,9 +30,12 @@ import com.anychart.chart.common.dataentry.ValueDataEntry;
 import com.anychart.charts.Pie;
 import com.anychart.enums.Align;
 import com.anychart.enums.LegendLayout;
+import com.anychart.enums.LegendPositionMode;
 import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
+import com.example.moneymanager.generic.Handlers;
 import com.example.moneymanager.model.SpendCategory;
+import com.example.moneymanager.model.Transaction;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.Legend;
@@ -44,24 +49,18 @@ import com.github.mikephil.charting.interfaces.datasets.IPieDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.MPPointF;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainFragment extends Fragment implements OnChartValueSelectedListener, View.OnTouchListener{
 
-    //private PieChart pieChart;
-
-    //tring[] months = {"Июнь", "Июль", "Август"};
-    //int[] spends = {20000, 15000, 30000};
-
     private PieChart chart;
     private List<SpendCategory> spendCategoryList = new ArrayList<>();
     private float dX;
     private float dY;
-    int lastAction;
-    //private SeekBar seekBarX, seekBarY;
-    //private TextView tvX, tvY;
+    private int lastAction;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -71,14 +70,21 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         final View dragView = root.findViewById(R.id.fab);
         dragView.setOnTouchListener(this);
 
-        //tvX = root.findViewById(R.id.tvXMax);
-        //tvY = root.findViewById(R.id.tvYMax);
-
-        //seekBarX = root.findViewById(R.id.seekBar1);
-        //seekBarY = root.findViewById(R.id.seekBar2);
-
-        //seekBarX.setOnSeekBarChangeListener((SeekBar.OnSeekBarChangeListener) MainFragment.this);
-        //seekBarY.setOnSeekBarChangeListener((SeekBar.OnSeekBarChangeListener) MainFragment.this);
+        Handlers.fabClick = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(@NonNull Message msg) {
+                switch (msg.what) {
+                    case Handlers.click_OK:
+                        Fragment fragment = new AddFragment();
+                        getFragmentManager()
+                                .beginTransaction()
+                                .replace(R.id.fragment_host, fragment)
+                                .commit();
+                        break;
+                }
+                return false;
+            }
+        });
 
         try {
             spendCategoryList = DB.GetSpendCategories();
@@ -128,9 +134,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             }
         });
 
-        //seekBarX.setProgress(4);
-        //seekBarY.setProgress(10);
-
         chart.animateY(1400, Easing.EaseInOutQuad);
         // chart.spin(2000, 0, 360);
 
@@ -148,39 +151,10 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         chart.setEntryLabelColor(Color.BLACK);
         chart.setEntryLabelTextSize(12f);
         setData(spendCategoryList);
+
         return root;
     }
 
-    /*public void setupPieChart() {
-        pieChart.setUsePercentValues(true);
-        pieChart.getDescription().setEnabled(true);
-        pieChart.setExtraOffsets(5, 10, 5, 5);
-
-        pieChart.setDragDecelerationFrictionCoef(0.95f);
-        ArrayList<PieEntry> entries = new ArrayList<>();
-        PieData data = new PieData();
-        /*Pie pie = AnyChart.pie();
-        List<DataEntry> dataEntryList = new ArrayList<>();
-        for (int i = 0; i < months.length; i++) {
-            dataEntryList.add(new ValueDataEntry(months[i], spends[i]));
-        }
-        pie.title("Расходы");
-        pie.data(dataEntryList);
-        pie.bounds(0, 0, 400d, 400d);
-        pie.labels().position("outside");
-        pie.legend().title().enabled(false);
-        pie.legend().title()
-                .text("Категории товаров")
-                .padding(0d, 0d, 10d, 0d);
-        pie.legend()
-                .position("bottom")
-                .itemsLayout(LegendLayout.HORIZONTAL)
-                .align(Align.CENTER);
-        pie.legend().enabled(false);
-        pie.title().enabled(false);
-        pie.background("#393A40");
-        anyChartView.setChart(pie);
-    }*/
     private void setData(List<SpendCategory> spendCategoryList) {
         ArrayList<PieEntry> entries = new ArrayList<>();
 
@@ -271,7 +245,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
             case MotionEvent.ACTION_UP:
                 if (lastAction == MotionEvent.ACTION_DOWN)
-                    Toast.makeText(getContext(), "Clicked!", Toast.LENGTH_SHORT).show();
+                    Handlers.fabClick.sendEmptyMessage(Handlers.click_OK);
                 break;
 
             default:
