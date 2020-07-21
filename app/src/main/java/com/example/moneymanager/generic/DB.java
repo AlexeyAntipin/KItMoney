@@ -5,7 +5,7 @@ import android.database.Cursor;
 
 import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
-import com.example.moneymanager.model.SpendCategory;
+import com.example.moneymanager.model.Category;
 import com.example.moneymanager.model.Transaction;
 
 import java.util.ArrayList;
@@ -51,15 +51,15 @@ public class DB {
         );
 
         Registry.DB.execSQL(
-                "CREATE TABLE IF NOT EXISTS spend_category (" +
+                "CREATE TABLE IF NOT EXISTS category (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "title TEXT, code TEXT, spend REAL);"
+                        "title TEXT, code TEXT, total REAL, type TEXT);"
         );
 
         Registry.DB.execSQL(
                 "CREATE TABLE IF NOT EXISTS transactions (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, " +
-                        "spend_category_id INTEGER, comment TEXT, sum REAL, type TEXT);"
+                        "transaction_id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER, " +
+                        "category_id INTEGER, comment TEXT, sum REAL, transaction_type TEXT, date TEXT);"
         );
 
         Connections.release();
@@ -71,6 +71,8 @@ public class DB {
         Registry.DB.execSQL("DROP TABLE  account_category");
         Registry.DB.execSQL("DROP TABLE  currency");
         Registry.DB.execSQL("DROP TABLE  account");
+        Registry.DB.execSQL("DROP TABLE category");
+        Registry.DB.execSQL("DROP TABLE transactions");
 
         Connections.release();
     }
@@ -136,9 +138,10 @@ public class DB {
         Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('USD', 'Доллар')");
         Registry.DB.execSQL("INSERT INTO currency (title, full_name) VALUES ('EUR', 'Евро')");
 
-        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Продукты питания', 'food', 0)");
-        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Кафе и рестораны', 'restaurants', 0)");
-        Registry.DB.execSQL("INSERT INTO spend_category (title, code, spend) VALUES ('Здоровье и медицина', 'health', 0)");
+        Registry.DB.execSQL("INSERT INTO category (title, code, total, type) VALUES ('Продукты питания', 'food', 0.0, 'expenses')");
+        Registry.DB.execSQL("INSERT INTO category (title, code, total, type) VALUES ('Кафе и рестораны', 'restaurants', 0.0, 'expenses')");
+        Registry.DB.execSQL("INSERT INTO category (title, code, total, type) VALUES ('Здоровье и медицина', 'health', 0.0, 'expenses')");
+        Registry.DB.execSQL("INSERT INTO category (title, code, total, type) VALUES ('Зарплата', 'salary', 0.0, 'income')");
 
         Cursor result = Registry.DB.rawQuery("SELECT id FROM currency WHERE title = 'RUB'", null);
         result.moveToFirst();
@@ -211,30 +214,53 @@ public class DB {
         return new ArrayList<>(accountCategories.values());
     }
 
-    public static List<SpendCategory> GetSpendCategories() throws InterruptedException {
+    public static List<Category> GetSpendCategories() throws InterruptedException {
         Connections.acquire();
-        List<SpendCategory> spendCategoryList = new ArrayList<>();
-        Cursor result = Registry.DB.rawQuery("SELECT * FROM spend_category", null);
+        List<Category> categoryList = new ArrayList<>();
+        String query = String.format("SELECT * FROM category WHERE type = '%s'", "expenses");
+        Cursor result = Registry.DB.rawQuery(query, null);
         if (result.moveToFirst()) {
             do {
-                SpendCategory spendCategory = new SpendCategory();
-                spendCategory.spend = result.getInt(result.getColumnIndex("spend"));
-                spendCategory.title = result.getString(result.getColumnIndex("title"));
-                spendCategoryList.add(spendCategory);
+                Category category = new Category();
+                category.total = result.getInt(result.getColumnIndex("total"));
+                category.title = result.getString(result.getColumnIndex("title"));
+                categoryList.add(category);
             } while (result.moveToNext());
         }
         Connections.release();
-        return spendCategoryList;
+        return categoryList;
+    }
+
+    public static List<Category> GetSpendCategoriesByTime(String date1, String date2) throws InterruptedException {
+        Connections.acquire();
+        List<Category> categoryList = new ArrayList<>();
+
+        String query = String.format("SELECT SUM(sum) as sum, title, transaction_id FROM transactions t " +
+                "Left join category c on t.category_id = c.id " +
+                "WHERE date > '%s' and date < '%s' and type = '%s' " +
+                "Group by title, id", date1, date2, "expenses");
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Category category = new Category();
+                category.total = result.getInt(result.getColumnIndex("total"));
+                category.title = result.getString(result.getColumnIndex("title"));
+                categoryList.add(category);
+            } while (result.moveToNext());
+        }
+        Connections.release();
+        return categoryList;
     }
 
     @SuppressLint("DefaultLocale")
-    public static void AddSpendCategory(SpendCategory spendCategory) throws InterruptedException {
+    public static void AddCategory(String title, String type) throws InterruptedException {
         DB.Connections.acquire();
 
         String query = String.format(
-                "INSERT INTO spend_category (title, spend) VALUES ('%s', '%f')",
-                spendCategory.title,
-                0
+                "INSERT INTO category (title, total, type) VALUES ('%s', '%f', '%s')",
+                title,
+                0.0,
+                type
         );
 
         Registry.DB.execSQL(query);
@@ -246,12 +272,13 @@ public class DB {
         DB.Connections.acquire();
 
         String query = String.format(
-                "INSERT INTO transactions (account_id, spend_category_id, comment, sum, type) VALUES ('%d', '%d', '%s', '%f', '%s')",
+                "INSERT INTO transactions (account_id, category_id, comment, sum, transaction_type, date) VALUES ('%d', '%d', '%s', '%f', '%s', '%s')",
                 transaction.account_id,
-                transaction.spend_category_id,
+                transaction.category_id,
                 transaction.comment,
                 transaction.sum,
-                transaction.type
+                transaction.transaction_type,
+                transaction.date
         );
 
         Registry.DB.execSQL(query);
@@ -267,12 +294,13 @@ public class DB {
         if (result.moveToFirst()) {
             do {
                 Transaction transaction = new Transaction();
-                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
-                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.category_id = result.getInt(result.getColumnIndex("category_id"));
+                transaction.transaction_id = result.getInt(result.getColumnIndex("transaction_id"));
                 transaction.sum = result.getDouble(result.getColumnIndex("sum"));
                 transaction.comment = result.getString(result.getColumnIndex("comment"));
-                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.transaction_type = result.getString(result.getColumnIndex("transaction_type"));
                 transaction.account_id = account_id;
+                transaction.date = result.getString(result.getColumnIndex("date"));
                 transactions.add(transaction);
             } while (result.moveToNext());
         }
@@ -281,20 +309,21 @@ public class DB {
     }
 
     @SuppressLint("DefaultLocale")
-    public static List<Transaction> GetTransactionsBySpendCategory(Integer spend_category_id) throws InterruptedException {
+    public static List<Transaction> GetTransactionsBySpendCategory(Integer category_id) throws InterruptedException {
         DB.Connections.acquire();
         List<Transaction> transactions = new ArrayList<>();
-        String query = String.format("SELECT * FROM transactions WHERE spend_category_id = '%d'", spend_category_id);
+        String query = String.format("SELECT * FROM transactions WHERE category_id = '%d'", category_id);
         Cursor result = Registry.DB.rawQuery(query, null);
         if (result.moveToFirst()) {
             do {
                 Transaction transaction = new Transaction();
-                transaction.spend_category_id = spend_category_id;
-                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.category_id = category_id;
+                transaction.transaction_id = result.getInt(result.getColumnIndex("transaction_id"));
                 transaction.sum = result.getDouble(result.getColumnIndex("sum"));
                 transaction.comment = result.getString(result.getColumnIndex("comment"));
-                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.transaction_type = result.getString(result.getColumnIndex("transaction_type"));
                 transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transaction.date = result.getString(result.getColumnIndex("date"));
                 transactions.add(transaction);
             } while (result.moveToNext());
         }
@@ -310,12 +339,13 @@ public class DB {
         if (result.moveToFirst()) {
             do {
                 Transaction transaction = new Transaction();
-                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
-                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.category_id = result.getInt(result.getColumnIndex("category_id"));
+                transaction.transaction_id = result.getInt(result.getColumnIndex("transaction_id"));
                 transaction.sum = result.getDouble(result.getColumnIndex("sum"));
                 transaction.comment = result.getString(result.getColumnIndex("comment"));
-                transaction.type = result.getString(result.getColumnIndex("type"));
+                transaction.transaction_type = result.getString(result.getColumnIndex("transaction_type"));
                 transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transaction.date = result.getString(result.getColumnIndex("date"));
                 transactions.add(transaction);
             } while (result.moveToNext());
         }
@@ -331,16 +361,41 @@ public class DB {
         if (result.moveToFirst()) {
             do {
                 Transaction transaction = new Transaction();
-                transaction.spend_category_id = result.getInt(result.getColumnIndex("spend_category_id"));
-                transaction.id = result.getInt(result.getColumnIndex("id"));
+                transaction.category_id = result.getInt(result.getColumnIndex("category_id"));
+                transaction.transaction_id = result.getInt(result.getColumnIndex("transaction_id"));
                 transaction.sum = result.getDouble(result.getColumnIndex("sum"));
                 transaction.comment = result.getString(result.getColumnIndex("comment"));
-                transaction.type = type;
+                transaction.transaction_type = type;
                 transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transaction.date = result.getString(result.getColumnIndex("date"));
                 transactions.add(transaction);
             } while (result.moveToNext());
         }
         DB.Connections.release();
         return transactions;
     }
+
+    public static List<Transaction> GetTransactionsByDate(String date1, String date2) throws InterruptedException {
+        DB.Connections.acquire();
+        List<Transaction> transactions = new ArrayList<>();
+        String query = String.format("SELECT * FROM transactions WHERE date < '%s' and date > '%s'", date2, date1);
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Transaction transaction = new Transaction();
+                transaction.category_id = result.getInt(result.getColumnIndex("category_id"));
+                transaction.transaction_id = result.getInt(result.getColumnIndex("transaction_id"));
+                transaction.sum = result.getDouble(result.getColumnIndex("sum"));
+                transaction.comment = result.getString(result.getColumnIndex("comment"));
+                transaction.transaction_type = result.getString(result.getColumnIndex("transaction_type"));
+                transaction.account_id = result.getInt(result.getColumnIndex("account_id"));
+                transaction.date = result.getString(result.getColumnIndex("date"));
+                transactions.add(transaction);
+            } while (result.moveToNext());
+        }
+        DB.Connections.release();
+        return transactions;
+    }
+
+
 }

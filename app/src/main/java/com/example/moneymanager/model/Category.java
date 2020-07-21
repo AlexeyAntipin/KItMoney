@@ -1,8 +1,9 @@
 package com.example.moneymanager.model;
 
-public class SpendCategory {
+public class Category {
 
     public Integer id;
     public String title;
-    public Integer spend;
+    public Integer total;
+    public String type;
 }

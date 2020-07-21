@@ -2,13 +2,14 @@
 <resources>
     <color name="colorPrimary">#6200EE</color>
     <color name="colorPrimaryDark">#3700B3</color>
-    <color name="colorAccent">#03DAC5</color>
+    <color name="colorAccent">#5E6169</color>
     <color name="colorWhite">#FFFFFF</color>
     <color name="buttonColor">#A5BBD6</color>
     <color name="colorBlack">#000000</color>
-    <color name="colorBackground">#393A40</color>
+    <color name="colorBackground">#9DA1AB</color>
     <color name="cardViewColor">#5E6169</color>
     <color name="fabColor">#1686E0</color>
     <color name="addExpensiveColor">#F03524</color>
     <color name="addIncomeColor">#2CD443</color>
+    <color name="plusColor">#EBE126</color>
 </resources>

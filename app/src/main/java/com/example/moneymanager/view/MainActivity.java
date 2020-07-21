@@ -7,7 +7,6 @@ import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Registry;
 import com.example.moneymanager.generic.SP;
-import com.example.moneymanager.model.AccountCategory;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.navigation.NavController;
@@ -18,7 +17,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,8 +36,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);

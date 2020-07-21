@@ -1,55 +1,46 @@
 package com.example.moneymanager.view.bottom_menu;
 
+import android.annotation.SuppressLint;
+import android.content.res.Resources;
+import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Typeface;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.text.SpannableString;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SeekBar;
-import android.widget.TextView;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
-import com.anychart.AnyChart;
-import com.anychart.AnyChartView;
-import com.anychart.chart.common.dataentry.DataEntry;
-import com.anychart.chart.common.dataentry.ValueDataEntry;
-import com.anychart.charts.Pie;
-import com.anychart.enums.Align;
-import com.anychart.enums.LegendLayout;
-import com.anychart.enums.LegendPositionMode;
+import com.appeaser.sublimepickerlibrary.datepicker.SelectedDate;
+import com.appeaser.sublimepickerlibrary.helpers.SublimeOptions;
+import com.appeaser.sublimepickerlibrary.recurrencepicker.SublimeRecurrencePicker;
 import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
-import com.example.moneymanager.model.SpendCategory;
+import com.example.moneymanager.model.Category;
 import com.example.moneymanager.model.Transaction;
+import com.example.moneymanager.view.SublimePickerFragment;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
-import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.highlight.Highlight;
-import com.github.mikephil.charting.interfaces.datasets.IPieDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
-import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.MPPointF;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,10 +48,39 @@ import java.util.List;
 public class MainFragment extends Fragment implements OnChartValueSelectedListener, View.OnTouchListener{
 
     private PieChart chart;
-    private List<SpendCategory> spendCategoryList = new ArrayList<>();
+    private List<Category> categoryList = new ArrayList<>();
     private float dX;
     private float dY;
     private int lastAction;
+    private Button addSpendCategory;
+    private LinearLayout linearLayout;
+    private boolean check = false;
+
+    SelectedDate mSelectedDate;
+    int mHour, mMinute;
+    String mRecurrenceOption, mRecurrenceRule;
+
+    SublimePickerFragment.Callback mFragmentCallback = new SublimePickerFragment.Callback() {
+        @Override
+        public void onCancelled() {
+        }
+
+        @Override
+        public void onDateTimeRecurrenceSet(SelectedDate selectedDate,
+                                            int hourOfDay, int minute,
+                                            SublimeRecurrencePicker.RecurrenceOption recurrenceOption,
+                                            String recurrenceRule) {
+
+            mSelectedDate = selectedDate;
+            mHour = hourOfDay;
+            mMinute = minute;
+            mRecurrenceOption = recurrenceOption != null ?
+                    recurrenceOption.name() : "n/a";
+            mRecurrenceRule = recurrenceRule != null ?
+                    recurrenceRule : "n/a";
+
+        }
+    };
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -69,6 +89,24 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         final View dragView = root.findViewById(R.id.fab);
         dragView.setOnTouchListener(this);
+        addSpendCategory = root.findViewById(R.id.addSpendCategory);
+        linearLayout = root.findViewById(R.id.linearLayout);
+
+        Handlers.redrawSpendCategories = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(@NonNull Message msg) {
+                switch (msg.what) {
+                    case Handlers.redraw_OK:
+                        getFragmentManager()
+                                .beginTransaction()
+                                .replace(R.id.fragment_host, new MainFragment())
+                                .commit();
+                        break;
+                }
+
+                return false;
+            }
+        });
 
         Handlers.fabClick = new Handler(new Handler.Callback() {
             @Override
@@ -87,12 +125,15 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         });
 
         try {
-            spendCategoryList = DB.GetSpendCategories();
+            categoryList = DB.GetSpendCategoriesByTime("20200720000000", "20200722000000");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        for (int i = 0; i < spendCategoryList.size(); i++) {
-            spendCategoryList.get(i).spend = i * 10 + 10;
+        for (int i = 0; i < categoryList.size(); i++) {
+            if (categoryList.get(i).total > 0.0) {
+                check = true;
+                break;
+            }
         }
 
         chart = root.findViewById(R.id.chart1);
@@ -110,6 +151,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         chart.setHoleRadius(58f);
         chart.setTransparentCircleRadius(61f);
+        drawCircle(chart.getHoleRadius());
 
         chart.setDrawCenterText(true);
 
@@ -146,28 +188,143 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         l.setYEntrySpace(7f);
         l.setYOffset(0f);
         l.setTextSize(20f);*/
+        chart.getLegend().setEnabled(false);
 
         // entry label styling
         chart.setEntryLabelColor(Color.BLACK);
         chart.setEntryLabelTextSize(12f);
-        setData(spendCategoryList);
+        setData(categoryList);
+
+        addSpendCategory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addSpendCategory.setVisibility(View.GONE);
+                linearLayout.setBackgroundResource(R.drawable.rounded_layout);
+                final View[] view = addCategory();
+                linearLayout.addView(view[0]);
+                LinearLayout layout1 = new LinearLayout(getContext());
+                layout1.setLayoutParams(new LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, 6));
+                layout1.setPadding(0, 0, 8, 0);
+                layout1.addView(view[2]);
+                LinearLayout layout2 = new LinearLayout(getContext());
+                layout2.setLayoutParams(new LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, 4));
+                layout2.setPadding(8, 0, 0, 0);
+                layout2.addView(view[3]);
+                LinearLayout layout = (LinearLayout) view[1];
+                layout.addView(layout1);
+                layout.addView(layout2);
+                linearLayout.setPadding(16, 8, 16, 8);
+                linearLayout.addView(layout);
+                view[3].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        linearLayout.setWeightSum(15);
+                        linearLayout.setPadding(32, 0, 32, 0);
+                        for (int i = 0; i < view.length; i++) {
+                            view[i].setVisibility(View.GONE);;
+                        }
+                        addSpendCategory.setVisibility(View.VISIBLE);
+                        addSpendCategory.setLayoutParams(new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
+                        ));
+                        linearLayout.setBackgroundResource(R.color.colorBackground);
+                    }
+                });
+                view[2].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        EditText name = (EditText) view[0];
+                        String title = name.getText().toString();
+                        if (title.equals("")) {
+                            Toast.makeText(getContext(), "Введите название категории",
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        try {
+                            DB.AddCategory(title, "expenses");
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        linearLayout.setWeightSum(15);
+                        linearLayout.setPadding(32, 0, 32, 0);
+                        for (int i = 0; i < view.length; i++) {
+                            view[i].setVisibility(View.GONE);
+                        }
+                        addSpendCategory.setVisibility(View.VISIBLE);
+                        addSpendCategory.setLayoutParams(new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
+                        ));
+                        linearLayout.setBackgroundResource(R.color.colorBackground);
+                        Handlers.redrawSpendCategories.sendEmptyMessage(Handlers.redraw_OK);
+                    }
+                });
+            }
+        });
+
+        Button openCalendar = root.findViewById(R.id.open_calendar);
+        openCalendar.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("ResourceType")
+            @Override
+            public void onClick(View v) {
+                SublimePickerFragment pickerFrag = new SublimePickerFragment();
+                pickerFrag.setCallback(mFragmentCallback);
+
+                SublimeOptions options = new SublimeOptions();
+                int displayOptions = 0;
+                displayOptions |= SublimeOptions.ACTIVATE_DATE_PICKER;
+                options.setPickerToShow(SublimeOptions.Picker.DATE_PICKER);
+
+                options.setDisplayOptions(displayOptions);
+
+                options.setCanPickDateRange(true);
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("SUBLIME_OPTIONS", options);
+                pickerFrag.setArguments(bundle);
+                pickerFrag.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
+                pickerFrag.show(getActivity().getSupportFragmentManager(), "SUBLIME_PICKER");
+            }
+        });
+
+        /*CaldroidFragment caldroidFragment = new CaldroidFragment();
+        Bundle args = new Bundle();
+        Calendar cal = Calendar.getInstance();
+        args.putInt(CaldroidFragment.MONTH, cal.get(Calendar.MONTH) + 1);
+        args.putInt(CaldroidFragment.YEAR, cal.get(Calendar.YEAR));
+        caldroidFragment.setArguments(args);
+
+        FragmentTransaction t = getFragmentManager().beginTransaction();
+        t.replace(R.id.fragment_host, caldroidFragment);
+        t.commit();*/
 
         return root;
     }
 
-    private void setData(List<SpendCategory> spendCategoryList) {
+    private void setData(List<Category> categoryList) {
         ArrayList<PieEntry> entries = new ArrayList<>();
 
         // NOTE: The order of the entries when being added to the entries array determines their position around the center of
         // the chart.
-        for (int i = 0; i < spendCategoryList.size(); i++) {
-            entries.add(new PieEntry((float) spendCategoryList.get(i).spend,
-                    spendCategoryList.get(i).title));
+
+        if (check) {
+            for (int i = 0; i < categoryList.size(); i++) {
+                entries.add(new PieEntry((float) categoryList.get(i).total,
+                        categoryList.get(i).title));
+            }
+
+        }
+        else {
+            chart.setDrawEntryLabels(false);
+            chart.setUsePercentValues(false);
+            entries.add(new PieEntry((float) 1.0, ""));
         }
 
-        PieDataSet dataSet = new PieDataSet(entries, "Election Results");
-
+        PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setDrawIcons(false);
+        dataSet.setDrawValues(false);
 
         dataSet.setSliceSpace(3f);
         dataSet.setIconsOffset(new MPPointF(0, 40));
@@ -201,9 +358,9 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         //dataSet.setSelectionShift(0f);
 
         PieData data = new PieData(dataSet);
-        data.setValueFormatter(new PercentFormatter(chart));
+        /*data.setValueFormatter(new PercentFormatter(chart));
         data.setValueTextSize(11f);
-        data.setValueTextColor(Color.BLACK);
+        data.setValueTextColor(Color.BLACK);*/
         chart.setData(data);
 
         // undo all highlights
@@ -252,5 +409,50 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                 return false;
         }
         return true;
+    }
+
+    @SuppressLint("ResourceAsColor")
+    public void drawCircle(float r) {
+        int screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
+        int screenHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
+        Canvas canvas = new Canvas();
+        Paint paint = new Paint();
+        paint.setColor(R.color.colorBlack);
+        paint.setStyle(Paint.Style.FILL);
+        //canvas.drawCircle((float) (screenWidth / 2.0), (float) (screenHeight / 2.0), r, paint);
+        canvas.drawCircle(0, 0, r, paint);
+    }
+
+    public View[] addCategory() {
+        EditText name = new EditText(getContext());
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0, 7));
+        name.setHint("Введите название категории");
+        name.setPadding(32, 8, 32, 8);
+
+        Button add = new Button(getContext());
+        add.setLayoutParams(new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 6));
+        add.setText("Добавить");
+        add.setPadding(0, 0, 8, 0);
+        add.setBackgroundResource(R.drawable.rounded_button_for_new_account);
+
+        Button cancel = new Button(getContext());
+        cancel.setLayoutParams(new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 4));
+        cancel.setText("Отмена");
+        cancel.setBackgroundResource(R.drawable.rounded_button_for_new_account);
+
+        LinearLayout linearLayout = new LinearLayout(getContext());
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+        linearLayout.setWeightSum(10);
+        linearLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0, 8));
+        linearLayout.setPadding(16, 4, 16, 4);
+        return new View[] {name, linearLayout, add, cancel};
     }
 }
