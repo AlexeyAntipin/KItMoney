@@ -1,0 +1,105 @@
+package com.example.moneymanager.adapters;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.moneymanager.R;
+import com.example.moneymanager.model.Transaction;
+import com.example.moneymanager.model.TransactionList;
+
+import java.util.List;
+
+public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapter.ViewHolder> {
+
+    private LayoutInflater inflater;
+    private List<TransactionList> transactions;
+    private Context context;
+
+    public TransactionsAdapter(Context context, LayoutInflater inflater,
+                                  List<TransactionList> transactions) {
+        this.context = context;
+        this.inflater = inflater;
+        this.transactions = transactions;
+    }
+
+    @NonNull
+    @Override
+    public TransactionsAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = inflater.inflate(R.layout.item_for_transactions_rv, parent, false);
+        return new TransactionsAdapter.ViewHolder(view);
+
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull TransactionsAdapter.ViewHolder holder, int position) {
+        holder.date.setText(transactions.get(position).date);
+        for (Transaction transaction : transactions.get(position).transactions) {
+            LinearLayout linearLayout = addTransaction(transaction.comment, transaction.sum);
+            holder.mainLinearLayout.addView(linearLayout);
+            holder.mainLinearLayout.addView(drawLine());
+        }
+    }
+
+    @Override
+    public int getItemCount() {
+        return transactions.size();
+    }
+
+    class ViewHolder extends RecyclerView.ViewHolder {
+        final TextView date;
+        final LinearLayout mainLinearLayout;
+
+        ViewHolder(View view) {
+            super(view);
+            date = view.findViewById(R.id.date);
+            mainLinearLayout = view.findViewById(R.id.linearLayout);
+        }
+    }
+
+    @SuppressLint("ResourceAsColor")
+    public LinearLayout drawLine() {
+        View view = new View(context);
+        view.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        view.setBackgroundColor(R.color.colorBlack);
+        LinearLayout linearLayout = new LinearLayout(context);
+        linearLayout.setPadding(32, 0, 32, 8);
+        linearLayout.addView(view);
+        return linearLayout;
+    }
+
+    public LinearLayout addTransaction(String title, double sum) {
+        LinearLayout linearLayout = new LinearLayout(context);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layoutParams.setMargins(0, 8, 0, 8);
+        linearLayout.setLayoutParams(layoutParams);
+        linearLayout.setWeightSum(10);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView transaction = new TextView(context);
+        transaction.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 8));
+        transaction.setTextSize(14);
+        transaction.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
+        transaction.setText(title);
+
+        TextView total = new TextView(context);
+        total.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 2));
+        total.setTextSize(14);
+        total.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_END);
+        total.setText(String.valueOf(sum));
+
+        linearLayout.addView(transaction);
+        linearLayout.addView(total);
+        return linearLayout;
+    }
+}

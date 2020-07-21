@@ -13,6 +13,7 @@ import com.example.moneymanager.R;
 import com.example.moneymanager.view.bottom_menu.AccountsFragment;
 import com.example.moneymanager.view.bottom_menu.AddFragment;
 import com.example.moneymanager.view.bottom_menu.MainFragment;
+import com.example.moneymanager.view.bottom_menu.TransactionsFragment;
 import com.google.android.material.tabs.TabLayout;
 
 public class HomeFragment extends Fragment {
@@ -40,6 +41,9 @@ public class HomeFragment extends Fragment {
                         break;
                     case 1:
                         fragment = new AccountsFragment();
+                        break;
+                    case 2:
+                        fragment = new TransactionsFragment();
                         break;
                     default:
                         return;
