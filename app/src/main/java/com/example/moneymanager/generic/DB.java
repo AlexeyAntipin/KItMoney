@@ -238,7 +238,7 @@ public class DB {
         String query = String.format("SELECT SUM(sum) as sum, title, transaction_id FROM transactions t " +
                 "Left join category c on t.category_id = c.id " +
                 "WHERE date > '%s' and date < '%s' and type = '%s' " +
-                "Group by title, id", date1, date2, "expenses");
+                "Group by title, transaction_id", date1, date2, "expenses");
         Cursor result = Registry.DB.rawQuery(query, null);
         if (result.moveToFirst()) {
             do {

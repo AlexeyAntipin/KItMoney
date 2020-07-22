@@ -1,4 +1,4 @@
-package com.example.moneymanager.view.bottom_menu;
+package com.example.moneymanager.view;
 
 import android.os.Build;
 import android.os.Bundle;
@@ -23,6 +23,7 @@ import com.example.moneymanager.model.Account;
 import com.example.moneymanager.model.AccountCategory;
 import com.example.moneymanager.model.Category;
 import com.example.moneymanager.model.Transaction;
+import com.example.moneymanager.view.bottom_menu.MainFragment;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

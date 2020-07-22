@@ -30,7 +30,7 @@ import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
 import com.example.moneymanager.model.Category;
-import com.example.moneymanager.model.Transaction;
+import com.example.moneymanager.view.AddFragment;
 import com.example.moneymanager.view.SublimePickerFragment;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.PieChart;
@@ -125,7 +125,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         });
 
         try {
-            categoryList = DB.GetSpendCategoriesByTime("20200720000000", "20200722000000");
+            categoryList = DB.GetSpendCategoriesByTime("20200720000000", "20200723000000");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

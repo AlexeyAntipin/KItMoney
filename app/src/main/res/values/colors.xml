@@ -6,10 +6,13 @@
     <color name="colorWhite">#FFFFFF</color>
     <color name="buttonColor">#A5BBD6</color>
     <color name="colorBlack">#000000</color>
-    <color name="colorBackground">#9DA1AB</color>
-    <color name="cardViewColor">#5E6169</color>
+    <color name="colorBackground">#B8B8B8</color>
+    <color name="cardViewColor">#9DA1AB</color>
+    <color name="darkCardViewColor">#5E6169</color>
     <color name="fabColor">#1686E0</color>
     <color name="addExpensiveColor">#F03524</color>
     <color name="addIncomeColor">#2CD443</color>
     <color name="plusColor">#EBE126</color>
+    <color name="colorRed">#C00A0A</color>
+    <color name="colorGreen">#0E5403</color>
 </resources>

@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +28,8 @@ import java.util.List;
 public class TransactionsFragment extends Fragment {
 
     private RecyclerView recyclerView;
+    private LinearLayout chooseFilters;
+    private TextView range;
     private List<Transaction> transactions = new ArrayList<>();
     private List<TransactionList> transactionList = new ArrayList<>();
 
@@ -35,6 +39,14 @@ public class TransactionsFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_transactions, container, false);
 
         recyclerView = root.findViewById(R.id.transactions);
+        chooseFilters = root.findViewById(R.id.choose_filters);
+        range = root.findViewById(R.id.range);
+        range.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
         try {
             transactions = DB.GetAllTransactions();
         } catch (InterruptedException e) {
@@ -48,7 +60,7 @@ public class TransactionsFragment extends Fragment {
             TransactionList list = new TransactionList();
             for (Transaction transaction : transactions) {
                 if (!new SimpleDateFormat("yyyyMMdd").parse(transaction.date.substring(0, 8)).toString().equals(date)) {
-                    list.date = date;
+                    list.date = d;
                     transactionList.add(list);
                     d = new SimpleDateFormat("yyyyMMdd").parse(transaction.date.substring(0, 8));
                     date = d.toString();
@@ -56,7 +68,7 @@ public class TransactionsFragment extends Fragment {
                 }
                 list.transactions.add(transaction);
             }
-            list.date = date;
+            list.date = d;
             transactionList.add(list);
 
             TransactionsAdapter adapter = new TransactionsAdapter(

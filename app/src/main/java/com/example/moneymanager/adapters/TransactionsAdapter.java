@@ -9,12 +9,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
 import com.example.moneymanager.model.Transaction;
 import com.example.moneymanager.model.TransactionList;
 
+import java.util.Calendar;
 import java.util.List;
 
 public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapter.ViewHolder> {
@@ -22,6 +24,8 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
     private LayoutInflater inflater;
     private List<TransactionList> transactions;
     private Context context;
+    private String[] months = { "Января", "Февраля", "Марта", "Апреля", "Мая",
+            "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"};
 
     public TransactionsAdapter(Context context, LayoutInflater inflater,
                                   List<TransactionList> transactions) {
@@ -40,9 +44,13 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
 
     @Override
     public void onBindViewHolder(@NonNull TransactionsAdapter.ViewHolder holder, int position) {
-        holder.date.setText(transactions.get(position).date);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(transactions.get(position).date);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int month = calendar.get(Calendar.MONTH);
+        holder.date.setText(day + " " + months[month - 1]);
         for (Transaction transaction : transactions.get(position).transactions) {
-            LinearLayout linearLayout = addTransaction(transaction.comment, transaction.sum);
+            LinearLayout linearLayout = addTransaction(transaction);
             holder.mainLinearLayout.addView(linearLayout);
             holder.mainLinearLayout.addView(drawLine());
         }
@@ -75,7 +83,7 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
         return linearLayout;
     }
 
-    public LinearLayout addTransaction(String title, double sum) {
+    public LinearLayout addTransaction(Transaction tr) {
         LinearLayout linearLayout = new LinearLayout(context);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -86,17 +94,25 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
 
         TextView transaction = new TextView(context);
         transaction.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.MATCH_PARENT, 8));
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 7));
+        transaction.setPadding(32, 0, 32, 0);
         transaction.setTextSize(14);
         transaction.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_START);
-        transaction.setText(title);
+        transaction.setText(tr.comment);
 
         TextView total = new TextView(context);
         total.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.MATCH_PARENT, 2));
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        total.setPadding(32, 0, 32, 0);
         total.setTextSize(14);
         total.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_END);
-        total.setText(String.valueOf(sum));
+        if (tr.transaction_type.equals("income")) {
+            total.setTextColor(ContextCompat.getColor(context, R.color.colorGreen));
+            total.setText("+ " + String.valueOf(tr.sum));
+        } else {
+            total.setTextColor(ContextCompat.getColor(context, R.color.colorRed));
+            total.setText("- " + String.valueOf(tr.sum));
+        }
 
         linearLayout.addView(transaction);
         linearLayout.addView(total);
