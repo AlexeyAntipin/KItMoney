@@ -1,6 +1,7 @@
 package com.example.moneymanager.adapters;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,11 +11,15 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
+import com.example.moneymanager.model.AlertDialogTransactionFragment;
 import com.example.moneymanager.model.Transaction;
 import com.example.moneymanager.model.TransactionList;
+import com.example.moneymanager.view.bottom_menu.TransactionsFragment;
 
 import java.util.Calendar;
 import java.util.List;
@@ -23,15 +28,17 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
 
     private LayoutInflater inflater;
     private List<TransactionList> transactions;
+    private FragmentManager fm;
     private Context context;
     private String[] months = { "Января", "Февраля", "Марта", "Апреля", "Мая",
             "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"};
 
     public TransactionsAdapter(Context context, LayoutInflater inflater,
-                                  List<TransactionList> transactions) {
+                               List<TransactionList> transactions, FragmentManager fm) {
         this.context = context;
         this.inflater = inflater;
         this.transactions = transactions;
+        this.fm = fm;
     }
 
     @NonNull
@@ -48,11 +55,18 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
         calendar.setTime(transactions.get(position).date);
         int day = calendar.get(Calendar.DAY_OF_MONTH);
         int month = calendar.get(Calendar.MONTH);
-        holder.date.setText(day + " " + months[month - 1]);
-        for (Transaction transaction : transactions.get(position).transactions) {
+        holder.date.setText(day + " " + months[month]);
+        for (final Transaction transaction : transactions.get(position).transactions) {
             LinearLayout linearLayout = addTransaction(transaction);
             holder.mainLinearLayout.addView(linearLayout);
             holder.mainLinearLayout.addView(drawLine());
+            linearLayout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    AlertDialogTransactionFragment fragment = new AlertDialogTransactionFragment(transaction);
+                    fragment.show(fm, "Info");
+                }
+            });
         }
     }
 

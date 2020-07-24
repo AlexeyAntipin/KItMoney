@@ -335,7 +335,7 @@ public class DB {
     public static List<Transaction> GetAllTransactions() throws InterruptedException {
         DB.Connections.acquire();
         List<Transaction> transactions = new ArrayList<>();
-        Cursor result = Registry.DB.rawQuery("SELECT * FROM transactions", null);
+        Cursor result = Registry.DB.rawQuery("SELECT * FROM transactions ORDER BY date DESC", null);
         if (result.moveToFirst()) {
             do {
                 Transaction transaction = new Transaction();
@@ -378,7 +378,7 @@ public class DB {
     public static List<Transaction> GetTransactionsByDate(String date1, String date2) throws InterruptedException {
         DB.Connections.acquire();
         List<Transaction> transactions = new ArrayList<>();
-        String query = String.format("SELECT * FROM transactions WHERE date < '%s' and date > '%s'", date2, date1);
+        String query = String.format("SELECT * FROM transactions WHERE date > '%s' and date < '%s'", date1, date2);
         Cursor result = Registry.DB.rawQuery(query, null);
         if (result.moveToFirst()) {
             do {
