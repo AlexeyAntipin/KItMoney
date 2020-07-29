@@ -1,5 +1,6 @@
 package com.example.moneymanager.view.bottom_menu;
 
+import android.app.DatePickerDialog;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -9,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -26,8 +28,10 @@ import com.example.moneymanager.R;
 import com.example.moneymanager.adapters.TransactionsAdapter;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
+import com.example.moneymanager.model.MonthYearPickerDialog;
 import com.example.moneymanager.model.Transaction;
 import com.example.moneymanager.model.TransactionList;
+import com.example.moneymanager.model.YearPickerDialog;
 import com.example.moneymanager.view.SublimePickerFragment;
 
 import java.text.SimpleDateFormat;
@@ -44,15 +48,17 @@ public class TransactionsFragment extends Fragment {
     private List<Transaction> transactions = new ArrayList<>();
     private List<TransactionList> transactionList = new ArrayList<>();
     private String str = "";
-    private int year, month, day;
+    private String str2 = "";
+    private int year, month, day, year2, month2, day2;
     private TransactionsAdapter adapter;
     private String[] months = { "Января", "Февраля", "Марта", "Апреля", "Мая",
-            "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"};
+            "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря" };
     private View.OnClickListener listener;
     private String title = "Все транзакции";
 
     private SelectedDate mSelectedDate;
     private String mRecurrenceOption, mRecurrenceRule;
+    private boolean check = false;
 
     SublimePickerFragment.Callback mFragmentCallback = new SublimePickerFragment.Callback() {
         @Override
@@ -67,6 +73,7 @@ public class TransactionsFragment extends Fragment {
 
             mSelectedDate = selectedDate;
             Calendar date = selectedDate.getStartDate();
+            Calendar date2 = selectedDate.getEndDate();
             year = date.get(Calendar.YEAR);
             month = date.get(Calendar.MONTH);
             day = date.get(Calendar.DAY_OF_MONTH);
@@ -74,7 +81,14 @@ public class TransactionsFragment extends Fragment {
                     recurrenceOption.name() : "n/a";
             mRecurrenceRule = recurrenceRule != null ?
                     recurrenceRule : "n/a";
-            Handlers.redrawTransactions.sendEmptyMessage(Handlers.redraw_OK);
+
+            if (date != date2) {
+                year2 = date2.get(Calendar.YEAR);
+                month2 = date2.get(Calendar.MONTH);
+                day2 = date2.get(Calendar.DAY_OF_MONTH);
+                check = true;
+            }
+            Handlers.redrawTransactions.sendEmptyMessage(Handlers.redraw_interval);
 
         }
     };
@@ -91,23 +105,48 @@ public class TransactionsFragment extends Fragment {
         Handlers.redrawTransactions = new Handler(new Handler.Callback() {
             @Override
             public boolean handleMessage(@NonNull Message msg) {
+
+                LinearLayout.LayoutParams forLayout = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1);
+                forLayout.setMargins(40, 24, 40, 0);
+                LinearLayout.LayoutParams forRV = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 11);
+                forRV.setMargins(16, 8, 16, 8);
+
                 switch (msg.what) {
-                    case Handlers.redraw_OK:
+                    case Handlers.redraw_interval:
                         str = "";
                         str += String.valueOf(year);
                         str += month / 10 == 0 ? (0 + String.valueOf(month + 1)) : String.valueOf(month + 1);
                         str += day / 10 == 0 ? (0 + String.valueOf(day)) : String.valueOf(day);
                         transactions = new ArrayList<>();
                         transactionList = new ArrayList<>();
-                        try {
-                            transactions = DB.GetTransactionsByDate(str, String.valueOf(Integer.parseInt(str) + 1));
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            Log.d("MyLog", e.toString());
+                        if (!check) {
+                            try {
+                                transactions = DB.GetTransactionsByDate(str, String.valueOf(Integer.parseInt(str) + 1));
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                Log.d("MyLog", e.toString());
+                            }
+                            title = day + " " + months[month] + ", " + year;
+                        } else {
+                            str2 = "";
+                            str2 += String.valueOf(year2);
+                            str2 += month2 / 10 == 0 ? (0 + String.valueOf(month2 + 1)) : String.valueOf(month2 + 1);
+                            str2 += day2 / 10 == 0 ? (0 + String.valueOf(day2)) : String.valueOf(day2);
+                            try {
+                                transactions = DB.GetTransactionsByDate(str, str2);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                Log.d("MyLog", e.toString());
+                            }
+                            title = day + " " + months[month] + ", " + year +
+                                    " - " + day2 + " " + months[month2] + ", " + year2;
+                            check = false;
                         }
+
                         chooseFilters.removeAllViews();
                         range.setVisibility(View.VISIBLE);
-                        title = day + " " + months[month] + ", " + year;
                         range = addRange(title);
                         chooseFilters.addView(range);
                         range.setOnClickListener(listener);
@@ -123,7 +162,51 @@ public class TransactionsFragment extends Fragment {
                         chooseFilters.addView(range);
                         range.setOnClickListener(listener);
                         break;
+
+                    case Handlers.redraw_month_and_year:
+                        transactions = new ArrayList<>();
+                        transactionList = new ArrayList<>();
+                        str = "";
+                        str += String.valueOf(year);
+                        str2 = str;
+                        str += month / 10 == 0 ? (0 + String.valueOf(month)) : String.valueOf(month);
+                        str2 += (month + 1) / 10 == 0 ? (0 + String.valueOf(month + 1)) : String.valueOf(month + 1);
+                        try {
+                            transactions = DB.GetTransactionsByDate(str,
+                                    str2);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        chooseFilters.removeAllViews();
+                        range.setVisibility(View.VISIBLE);
+                        range = addRange(title);
+                        chooseFilters.addView(range);
+                        range.setOnClickListener(listener);
+
+                        draw();
+                        break;
+
+                    case Handlers.redraw_year:
+                        transactions = new ArrayList<>();
+                        transactionList = new ArrayList<>();
+                        try {
+                            transactions = DB.GetTransactionsByDate(
+                                    String.valueOf(year), String.valueOf(year + 1));
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        chooseFilters.removeAllViews();
+                        range.setVisibility(View.VISIBLE);
+                        range = addRange(title);
+                        chooseFilters.addView(range);
+                        range.setOnClickListener(listener);
+
+                        draw();
                 }
+                chooseFilters.setLayoutParams(forLayout);
+                recyclerView.setLayoutParams(forRV);
                 return false;
             }
         });
@@ -140,6 +223,16 @@ public class TransactionsFragment extends Fragment {
                 linearLayout1.setLayoutParams(lp);
                 linearLayout1.setOrientation(LinearLayout.HORIZONTAL);
                 linearLayout1.setWeightSum(2);
+
+                LinearLayout.LayoutParams forChooseFilters = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 3);
+                forChooseFilters.setMargins(40, 24, 40, 0);
+                LinearLayout.LayoutParams forRecyclerView = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 9);
+                forRecyclerView.setMargins(16, 8, 16, 8);
+                chooseFilters.setLayoutParams(forChooseFilters);
+                recyclerView.setLayoutParams(forRecyclerView);
+
                 View[] view1 = addButtons("Год", "Интервал");
                 for (int i = 0; i < view1.length; i++) linearLayout1.addView(view1[i]);
                 chooseFilters.addView(linearLayout1);
@@ -165,6 +258,22 @@ public class TransactionsFragment extends Fragment {
                     }
                 });
 
+                view1[0].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        YearPickerDialog pd = new YearPickerDialog();
+                        pd.setListener(new DatePickerDialog.OnDateSetListener() {
+                            @Override
+                            public void onDateSet(DatePicker view, int selectedYear, int selectedMonth, int selectedDay) {
+                                title = String.valueOf(selectedYear);
+                                year = selectedYear;
+                                Handlers.redrawTransactions.sendEmptyMessage(Handlers.redraw_year);
+                            }
+                        });
+                        pd.show(getFragmentManager(), "YearPickerDialog");
+                    }
+                });
+
                 linearLayout2.setLayoutParams(lp);
                 linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
                 linearLayout2.setWeightSum(2);
@@ -176,6 +285,27 @@ public class TransactionsFragment extends Fragment {
                     @Override
                     public void onClick(View v) {
                         Handlers.redrawTransactions.sendEmptyMessage(Handlers.redraw_Cancel);
+                    }
+                });
+
+                view2[0].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        MonthYearPickerDialog pd = new MonthYearPickerDialog();
+
+                        pd.setListener(new DatePickerDialog.OnDateSetListener() {
+                            @Override
+                            public void onDateSet(DatePicker view, int selectedYear, int selectedMonth, int selectedDay) {
+                                String[] m = { "Январь", "Февраль", "Март", "Апрель",
+                                        "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
+                                title = m[selectedMonth - 1] + ", " + selectedYear;
+                                year = selectedYear;
+                                month = selectedMonth;
+                                Handlers.redrawTransactions.sendEmptyMessage(Handlers.redraw_month_and_year);
+                            }
+                        });
+                        pd.show(getFragmentManager(), "MonthYearPickerDialog");
+
                     }
                 });
             }
@@ -199,7 +329,7 @@ public class TransactionsFragment extends Fragment {
         Button button2 = new Button(getContext());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        lp.setMargins(32, 16, 32, 16);
+        lp.setMargins(32, 32, 32, 0);
         button1.setLayoutParams(lp);
         button1.setBackgroundResource(R.drawable.rounded_layout);
         button1.setText(title1);
@@ -243,8 +373,8 @@ public class TransactionsFragment extends Fragment {
     public TextView addRange(String title) {
         TextView range = new TextView(getContext());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(0, 16, 0, 16);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp.setMargins(0, 24, 0, 16);
         range.setLayoutParams(lp);
         range.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         range.setTypeface(Typeface.DEFAULT_BOLD);

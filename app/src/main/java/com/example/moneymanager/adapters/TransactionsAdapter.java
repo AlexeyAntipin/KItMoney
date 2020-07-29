@@ -1,7 +1,6 @@
 package com.example.moneymanager.adapters;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,15 +11,18 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.moneymanager.R;
+import com.example.moneymanager.generic.DB;
+import com.example.moneymanager.model.Account;
+import com.example.moneymanager.model.AccountCategory;
 import com.example.moneymanager.model.AlertDialogTransactionFragment;
+import com.example.moneymanager.model.Category;
 import com.example.moneymanager.model.Transaction;
 import com.example.moneymanager.model.TransactionList;
-import com.example.moneymanager.view.bottom_menu.TransactionsFragment;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -32,13 +34,24 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
     private Context context;
     private String[] months = { "Января", "Февраля", "Марта", "Апреля", "Мая",
             "Июня", "Июля", "Августа", "Сентября", "Октября", "Ноября", "Декабря"};
+    private List<Category> categories = new ArrayList<>();
+    private List<Account> accounts = new ArrayList<>();
+    private int sum = 0;
 
     public TransactionsAdapter(Context context, LayoutInflater inflater,
-                               List<TransactionList> transactions, FragmentManager fm) {
+                               List<TransactionList> transactions, FragmentManager fm) throws InterruptedException {
         this.context = context;
         this.inflater = inflater;
         this.transactions = transactions;
         this.fm = fm;
+        List<AccountCategory> accountsCategories = new ArrayList<>();
+        categories = DB.GetAllCategories();
+        accountsCategories = DB.GetAccounts();
+        for (AccountCategory category : accountsCategories) {
+            for (Account account : category.accounts) {
+                accounts.add(account);
+            }
+        }
     }
 
     @NonNull
@@ -68,6 +81,15 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
                 }
             });
         }
+        if (sum >= 0) {
+            holder.daySum.setTextColor(ContextCompat.getColor(context, R.color.colorGreen));
+            holder.daySum.setText("+ " + sum);
+        }
+        else {
+            holder.daySum.setTextColor(ContextCompat.getColor(context, R.color.colorRed));
+            holder.daySum.setText(String.valueOf(sum));
+        }
+        sum = 0;
     }
 
     @Override
@@ -77,12 +99,14 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
 
     class ViewHolder extends RecyclerView.ViewHolder {
         final TextView date;
+        final TextView daySum;
         final LinearLayout mainLinearLayout;
 
         ViewHolder(View view) {
             super(view);
             date = view.findViewById(R.id.date);
             mainLinearLayout = view.findViewById(R.id.linearLayout);
+            daySum = view.findViewById(R.id.day_sum);
         }
     }
 
@@ -122,10 +146,14 @@ public class TransactionsAdapter extends RecyclerView.Adapter<TransactionsAdapte
         total.setTextAlignment(View.TEXT_ALIGNMENT_TEXT_END);
         if (tr.transaction_type.equals("income")) {
             total.setTextColor(ContextCompat.getColor(context, R.color.colorGreen));
-            total.setText("+ " + String.valueOf(tr.sum));
+            if (tr.sum % 1 == 0.0) total.setText("+ " + tr.sum.intValue());
+            else total.setText("+ " + tr.sum);
+            sum += tr.sum;
         } else {
             total.setTextColor(ContextCompat.getColor(context, R.color.colorRed));
-            total.setText("- " + String.valueOf(tr.sum));
+            if (tr.sum % 1 == 0.0) total.setText("- " + tr.sum.intValue());
+            else total.setText("- " + tr.sum);
+            sum -= tr.sum;
         }
 
         linearLayout.addView(transaction);

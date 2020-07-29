@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.moneymanager.R;
 import com.example.moneymanager.view.bottom_menu.AccountsFragment;
+import com.example.moneymanager.view.bottom_menu.AnalysisFragment;
 import com.example.moneymanager.view.bottom_menu.MainFragment;
 import com.example.moneymanager.view.bottom_menu.TransactionsFragment;
 import com.google.android.material.tabs.TabLayout;
@@ -42,6 +43,9 @@ public class HomeFragment extends Fragment {
                         break;
                     case 2:
                         fragment = new TransactionsFragment();
+                        break;
+                    case 3:
+                        fragment = new AnalysisFragment();
                         break;
                     default:
                         return;

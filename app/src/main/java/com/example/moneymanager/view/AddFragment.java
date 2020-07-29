@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,13 +35,15 @@ public class AddFragment extends Fragment {
 
     private Spinner chooseAccount, chooseCategory;
     private TextView sumTitle, currency;
-    private EditText sum;
+    private EditText sum, comment;
     private List<AccountCategory> accounts = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
     private List<String> accountTitles = new ArrayList<>();
-    private List<String> categoryTitles = new ArrayList<>();
+    private List<String> spendCategoryTitles = new ArrayList<>();
+    private List<String> incomeCategoryTitles = new ArrayList<>();
     private List<Integer> accountIds = new ArrayList<>();
     private List<Integer> spendCategoryIds = new ArrayList<>();
+    private List<Integer> incomeCategoryIds = new ArrayList<>();
     private List<String> cur = new ArrayList<>();
     private Transaction transaction = new Transaction();
     private Button addExpensive, addIncome, cancel, accept;
@@ -55,6 +58,7 @@ public class AddFragment extends Fragment {
         sumTitle = root.findViewById(R.id.sum_title);
         currency = root.findViewById(R.id.currency);
         sum = root.findViewById(R.id.sum);
+        comment = root.findViewById(R.id.comment);
         addExpensive = root.findViewById(R.id.addExpensive);
         addIncome = root.findViewById(R.id.addIncome);
         cancel = root.findViewById(R.id.cancel);
@@ -66,7 +70,7 @@ public class AddFragment extends Fragment {
         }
 
         try {
-            categories = DB.GetSpendCategories();
+            categories = DB.GetAllCategories();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -80,19 +84,28 @@ public class AddFragment extends Fragment {
         }
 
         for (Category category : categories) {
-            categoryTitles.add(category.title);
-            spendCategoryIds.add(category.id);
+            if (category.type.equals("expenses")) {
+                spendCategoryTitles.add(category.title);
+                spendCategoryIds.add(category.id);
+            } else {
+                incomeCategoryTitles.add(category.title);
+                incomeCategoryIds.add(category.id);
+            }
         }
 
-        ArrayAdapter<String> accountArrayAdapter = new ArrayAdapter<String>
+        final ArrayAdapter<String> accountArrayAdapter = new ArrayAdapter<String>
                 (getContext(), R.layout.support_simple_spinner_dropdown_item, accountTitles);
 
-        ArrayAdapter<String> categoriesArrayAdapter = new ArrayAdapter<String>
-                (getContext(), R.layout.support_simple_spinner_dropdown_item, categoryTitles);
+        final ArrayAdapter<String> spendCategoriesArrayAdapter = new ArrayAdapter<String>
+                (getContext(), R.layout.support_simple_spinner_dropdown_item, spendCategoryTitles);
+
+        final ArrayAdapter<String> incomeCategoriesArrayAdapter = new ArrayAdapter<String>
+                (getContext(), R.layout.support_simple_spinner_dropdown_item, incomeCategoryTitles);
 
         chooseAccount.setAdapter(accountArrayAdapter);
-        chooseCategory.setAdapter(categoriesArrayAdapter);
+        chooseCategory.setAdapter(spendCategoriesArrayAdapter);
         sumTitle.setText("Сумма");
+        transaction.transaction_type = "expenses";
 
         chooseAccount.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -110,7 +123,9 @@ public class AddFragment extends Fragment {
         chooseCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                transaction.category_id = spendCategoryIds.get(position);
+                if (transaction.transaction_type.equals("expenses"))
+                    transaction.category_id = spendCategoryIds.get(position);
+                else transaction.category_id = incomeCategoryIds.get(position);
             }
 
             @Override
@@ -123,6 +138,9 @@ public class AddFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 transaction.transaction_type = "income";
+                chooseCategory.setAdapter(incomeCategoriesArrayAdapter);
+                addIncome.setBackgroundResource(R.drawable.button_add_income_with_stroke);
+                addExpensive.setBackgroundResource(R.drawable.button_add_expensive_without_stroke);
             }
         });
 
@@ -130,6 +148,9 @@ public class AddFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 transaction.transaction_type = "expenses";
+                chooseCategory.setAdapter(spendCategoriesArrayAdapter);
+                addExpensive.setBackgroundResource(R.drawable.button_add_expensive);
+                addIncome.setBackgroundResource(R.drawable.button_add_income_without_stroke);
             }
         });
 
@@ -137,16 +158,39 @@ public class AddFragment extends Fragment {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View v) {
-                transaction.sum = Double.parseDouble(sum.getText().toString());
-                transaction.comment = "";
+                try {
+                    transaction.sum = Double.parseDouble(sum.getText().toString());
+                    if (comment.getText().toString().equals("")) {
+                        Toast.makeText(getContext(), "Заполните все поля",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    transaction.comment = comment.getText().toString();
+                } catch (Exception e) {
+                    Toast.makeText(getContext(), "Заполните все поля",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
                 LocalDateTime time = LocalDateTime.now();
                 transaction.date = dtf.format(time);
                 try {
                     DB.AddTransactions(transaction);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    DB.AddSum(transaction.sum, transaction.account_id,
+                            transaction.transaction_type);
+                } catch (InterruptedException e){
+
                 }
+                getFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_host, new MainFragment())
+                        .commit();
+            }
+        });
+
+        cancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 getFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_host, new MainFragment())

@@ -20,11 +20,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import com.appeaser.sublimepickerlibrary.datepicker.SelectedDate;
-import com.appeaser.sublimepickerlibrary.helpers.SublimeOptions;
 import com.appeaser.sublimepickerlibrary.recurrencepicker.SublimeRecurrencePicker;
 import com.example.moneymanager.R;
 import com.example.moneymanager.generic.DB;
@@ -40,6 +38,7 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.MPPointF;
 
 import java.util.ArrayList;
@@ -55,32 +54,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
     private Button addSpendCategory;
     private LinearLayout linearLayout;
     private boolean check = false;
-
-    SelectedDate mSelectedDate;
-    int mHour, mMinute;
-    String mRecurrenceOption, mRecurrenceRule;
-
-    SublimePickerFragment.Callback mFragmentCallback = new SublimePickerFragment.Callback() {
-        @Override
-        public void onCancelled() {
-        }
-
-        @Override
-        public void onDateTimeRecurrenceSet(SelectedDate selectedDate,
-                                            int hourOfDay, int minute,
-                                            SublimeRecurrencePicker.RecurrenceOption recurrenceOption,
-                                            String recurrenceRule) {
-
-            mSelectedDate = selectedDate;
-            mHour = hourOfDay;
-            mMinute = minute;
-            mRecurrenceOption = recurrenceOption != null ?
-                    recurrenceOption.name() : "n/a";
-            mRecurrenceRule = recurrenceRule != null ?
-                    recurrenceRule : "n/a";
-
-        }
-    };
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -125,7 +98,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         });
 
         try {
-            categoryList = DB.GetSpendCategoriesByTime("20200720000000", "20200723000000");
+            categoryList = DB.GetSpendCategoriesByTime("202007", "202008");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -135,6 +108,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                 break;
             }
         }
+        Log.d("MyLog", String.valueOf(categoryList.get(0).total));
 
         chart = root.findViewById(R.id.chart1);
         chart.setUsePercentValues(true);
@@ -265,41 +239,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             }
         });
 
-        Button openCalendar = root.findViewById(R.id.open_calendar);
-        openCalendar.setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("ResourceType")
-            @Override
-            public void onClick(View v) {
-                SublimePickerFragment pickerFrag = new SublimePickerFragment();
-                pickerFrag.setCallback(mFragmentCallback);
-
-                SublimeOptions options = new SublimeOptions();
-                int displayOptions = 0;
-                displayOptions |= SublimeOptions.ACTIVATE_DATE_PICKER;
-                options.setPickerToShow(SublimeOptions.Picker.DATE_PICKER);
-
-                options.setDisplayOptions(displayOptions);
-
-                options.setCanPickDateRange(true);
-                Bundle bundle = new Bundle();
-                bundle.putParcelable("SUBLIME_OPTIONS", options);
-                pickerFrag.setArguments(bundle);
-                pickerFrag.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
-                pickerFrag.show(getActivity().getSupportFragmentManager(), "SUBLIME_PICKER");
-            }
-        });
-
-        /*CaldroidFragment caldroidFragment = new CaldroidFragment();
-        Bundle args = new Bundle();
-        Calendar cal = Calendar.getInstance();
-        args.putInt(CaldroidFragment.MONTH, cal.get(Calendar.MONTH) + 1);
-        args.putInt(CaldroidFragment.YEAR, cal.get(Calendar.YEAR));
-        caldroidFragment.setArguments(args);
-
-        FragmentTransaction t = getFragmentManager().beginTransaction();
-        t.replace(R.id.fragment_host, caldroidFragment);
-        t.commit();*/
-
         return root;
     }
 
@@ -313,6 +252,8 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             for (int i = 0; i < categoryList.size(); i++) {
                 entries.add(new PieEntry((float) categoryList.get(i).total,
                         categoryList.get(i).title));
+                chart.setDrawEntryLabels(true);
+                chart.setUsePercentValues(true);
             }
 
         }
@@ -347,9 +288,9 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             colors.add(c);
 
         for (int c : ColorTemplate.PASTEL_COLORS)
-            colors.add(c);
+            colors.add(c);*/
 
-        colors.add(ColorTemplate.getHoloBlue());*/
+        colors.add(ColorTemplate.getHoloBlue());
         colors.add(Color.BLUE);
         colors.add(R.color.fabColor);
         colors.add(Color.WHITE);

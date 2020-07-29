@@ -52,14 +52,4 @@
                     android:text="Добавить категорию расходов" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/open_calendar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="16dp"
-            android:layout_marginBottom="16dp"
-            android:text="open calendar"/>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

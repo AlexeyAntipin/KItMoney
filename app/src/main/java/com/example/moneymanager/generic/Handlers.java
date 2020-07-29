@@ -11,5 +11,9 @@ public class Handlers {
     public final static int redraw_OK = 1;
     public final static int redraw_Cancel = 2;
 
-    public final static int click_OK = 1;
+    public final static int click_OK = 3;
+
+    public final static int redraw_interval = 4;
+    public final static int redraw_month_and_year = 5;
+    public final static int redraw_year = 6;
 }

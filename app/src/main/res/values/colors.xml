@@ -10,8 +10,8 @@
     <color name="cardViewColor">#9DA1AB</color>
     <color name="darkCardViewColor">#5E6169</color>
     <color name="fabColor">#1686E0</color>
-    <color name="addExpensiveColor">#F03524</color>
-    <color name="addIncomeColor">#2CD443</color>
+    <color name="addExpensiveColor">#CCF03524</color>
+    <color name="addIncomeColor">#CC2CD443</color>
     <color name="plusColor">#EBE126</color>
     <color name="colorRed">#C00A0A</color>
     <color name="colorGreen">#0E5403</color>

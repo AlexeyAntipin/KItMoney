@@ -128,6 +128,28 @@ public class DB {
     }
 
     @SuppressLint("DefaultLocale")
+    public static void AddSum(Double s, Integer account_id, String type)
+            throws InterruptedException {
+        Double sum = 0.0;
+        DB.Connections.acquire();
+        Registry.DB.beginTransaction();
+        try {
+            String query = String.format("SELECT * FROM account WHERE id = '%d'", account_id);
+            Cursor result = Registry.DB.rawQuery(query, null);
+            result.moveToFirst();
+            sum = result.getDouble(result.getColumnIndex("balance"));
+            sum = type.equals("expenses") ? sum - s : sum + s;
+            query = String.format("UPDATE account SET balance = '%f' WHERE id = '%d'",
+                    sum, account_id);
+            Registry.DB.execSQL(query);
+            Registry.DB.setTransactionSuccessful();
+        } finally {
+            Registry.DB.endTransaction();
+        }
+        DB.Connections.release();
+    }
+
+    @SuppressLint("DefaultLocale")
     public static void AddCommon() throws InterruptedException {
         Connections.acquire();
 
@@ -235,21 +257,40 @@ public class DB {
         Connections.acquire();
         List<Category> categoryList = new ArrayList<>();
 
-        String query = String.format("SELECT SUM(sum) as sum, title, transaction_id FROM transactions t " +
-                "Left join category c on t.category_id = c.id " +
-                "WHERE date > '%s' and date < '%s' and type = '%s' " +
-                "Group by title, transaction_id", date1, date2, "expenses");
-        Cursor result = Registry.DB.rawQuery(query, null);
+            String query = String.format("SELECT SUM(sum) as sum, title, transaction_id FROM transactions t " +
+                    "Left join category c on t.category_id = c.id " +
+                    "WHERE date > '%s' and date < '%s' and type = '%s' " +
+                    "Group by title, transaction_id", date1, date2, "expenses");
+            Cursor result = Registry.DB.rawQuery(query, null);
+            if (result.moveToFirst()) {
+                do {
+                    Category category = new Category();
+                    category.total = result.getInt(result.getColumnIndex("sum"));
+                    category.title = result.getString(result.getColumnIndex("title"));
+                    categoryList.add(category);
+                } while (result.moveToNext());
+            }
+        Connections.release();
+        return categoryList;
+    }
+
+    public static List<Category> GetAllCategories() throws InterruptedException {
+        Connections.acquire();
+        List<Category> categories = new ArrayList<>();
+
+        Cursor result = Registry.DB.rawQuery("SELECT * FROM category", null);
         if (result.moveToFirst()) {
             do {
                 Category category = new Category();
+                category.id = result.getInt(result.getColumnIndex("id"));
                 category.total = result.getInt(result.getColumnIndex("total"));
                 category.title = result.getString(result.getColumnIndex("title"));
-                categoryList.add(category);
+                category.type = result.getString(result.getColumnIndex("type"));
+                categories.add(category);
             } while (result.moveToNext());
         }
         Connections.release();
-        return categoryList;
+        return categories;
     }
 
     @SuppressLint("DefaultLocale")
@@ -396,6 +437,4 @@ public class DB {
         DB.Connections.release();
         return transactions;
     }
-
-
 }
