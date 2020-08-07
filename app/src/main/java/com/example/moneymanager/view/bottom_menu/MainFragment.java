@@ -1,10 +1,7 @@
 package com.example.moneymanager.view.bottom_menu;
 
-import android.annotation.SuppressLint;
-import android.content.res.Resources;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -20,16 +17,17 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import com.appeaser.sublimepickerlibrary.datepicker.SelectedDate;
-import com.appeaser.sublimepickerlibrary.recurrencepicker.SublimeRecurrencePicker;
 import com.example.moneymanager.R;
+import com.example.moneymanager.adapters.FragmentMainCategoryAdapter;
 import com.example.moneymanager.generic.DB;
 import com.example.moneymanager.generic.Handlers;
 import com.example.moneymanager.model.Category;
 import com.example.moneymanager.view.AddFragment;
-import com.example.moneymanager.view.SublimePickerFragment;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.Entry;
@@ -38,10 +36,10 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
-import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.MPPointF;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class MainFragment extends Fragment implements OnChartValueSelectedListener, View.OnTouchListener{
@@ -51,10 +49,31 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
     private float dX;
     private float dY;
     private int lastAction;
-    private Button addSpendCategory;
+    private Button addCategory;
     private LinearLayout linearLayout;
-    private boolean check = false;
+    private RecyclerView recyclerView;
+    private boolean check = false, isExpenses = true;
+    private Calendar calendar;
+    private int year, month;
+    private String date1, date2;
+    private FragmentMainCategoryAdapter adapter;
+    private int[] colorsArray = { Color.rgb(243, 144, 12),
+            Color.rgb(60, 26, 167), Color.rgb(249, 185, 119),
+            Color.rgb(17, 96, 156), Color.rgb(101, 178, 203),
+            Color.rgb(241, 115, 137), Color.rgb(243, 203, 12),
+            Color.rgb(147, 232, 110), Color.rgb(46, 57, 131),
+            Color.rgb(113, 173, 43), Color.rgb(165, 41, 89),
+            Color.rgb(191, 151, 48), Color.rgb(30, 120, 108),
+            Color.rgb(191, 188, 48), Color.rgb(92, 38, 128),
+            Color.rgb(191, 107, 48), Color.rgb(44, 115, 53),
+            Color.rgb(149, 134, 57), Color.rgb(61, 46, 102),
+            Color.rgb(149, 61, 57) };
 
+    public MainFragment(boolean isExpenses) {
+        this.isExpenses = isExpenses;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -62,8 +81,9 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         final View dragView = root.findViewById(R.id.fab);
         dragView.setOnTouchListener(this);
-        addSpendCategory = root.findViewById(R.id.addSpendCategory);
+        addCategory = root.findViewById(R.id.addCategory);
         linearLayout = root.findViewById(R.id.linearLayout);
+        recyclerView = root.findViewById(R.id.recycler_view);
 
         Handlers.redrawSpendCategories = new Handler(new Handler.Callback() {
             @Override
@@ -72,7 +92,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                     case Handlers.redraw_OK:
                         getFragmentManager()
                                 .beginTransaction()
-                                .replace(R.id.fragment_host, new MainFragment())
+                                .replace(R.id.fragment_host, new MainFragment(isExpenses))
                                 .commit();
                         break;
                 }
@@ -97,8 +117,19 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             }
         });
 
+        addCategory.setText("Добавить категорию расходов");
+        calendar = Calendar.getInstance();
+        year = calendar.get(Calendar.YEAR);
+        month = calendar.get(Calendar.MONTH) + 1;
+        date1 = year + (month > 10 ? String.valueOf(month) : (0 + String.valueOf(month)));
+        date2 = year + (month > 10 ? String.valueOf(month + 1) : (0 + String.valueOf(month + 1)));
+
         try {
-            categoryList = DB.GetSpendCategoriesByTime("202007", "202008");
+                if (isExpenses) {
+                    categoryList = DB.GetSpendCategoriesByTime(date1, date2);
+                } else {
+                    categoryList = DB.GetIncomeCategoriesByTime(date1, date2);
+                }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -108,10 +139,10 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                 break;
             }
         }
-        Log.d("MyLog", String.valueOf(categoryList.get(0).total));
+
+        drawRV();
 
         chart = root.findViewById(R.id.chart1);
-        chart.setUsePercentValues(true);
         chart.getDescription().setEnabled(false);
         chart.setExtraOffsets(5, 10, 5, 5);
 
@@ -125,7 +156,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         chart.setHoleRadius(58f);
         chart.setTransparentCircleRadius(61f);
-        drawCircle(chart.getHoleRadius());
 
         chart.setDrawCenterText(true);
 
@@ -141,7 +171,21 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         chart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(Entry e, Highlight h) {
+                try {
+                    if (isExpenses) {
+                        categoryList = DB.GetIncomeCategoriesByTime(date1, date2);
+                        isExpenses = false;
+                        addCategory.setText("Добавить категорию доходов");
+                    } else {
+                        categoryList = DB.GetSpendCategoriesByTime(date1, date2);
+                        isExpenses = true;
+                        addCategory.setText("Добавить категорию расходов");
+                    }
+                    drawRV();
+                } catch (Exception ex) {
 
+                }
+                setData(categoryList);
             }
 
             @Override
@@ -150,7 +194,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             }
         });
 
-        chart.animateY(1400, Easing.EaseInOutQuad);
         // chart.spin(2000, 0, 360);
 
         /*Legend l = chart.getLegend();
@@ -163,16 +206,18 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         l.setYOffset(0f);
         l.setTextSize(20f);*/
         chart.getLegend().setEnabled(false);
+        chart.getLegend().setTextSize(14f);
+        chart.getLegend().setWordWrapEnabled(true);
 
         // entry label styling
         chart.setEntryLabelColor(Color.BLACK);
         chart.setEntryLabelTextSize(12f);
         setData(categoryList);
 
-        addSpendCategory.setOnClickListener(new View.OnClickListener() {
+        addCategory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addSpendCategory.setVisibility(View.GONE);
+                addCategory.setVisibility(View.GONE);
                 linearLayout.setBackgroundResource(R.drawable.rounded_layout);
                 final View[] view = addCategory();
                 linearLayout.addView(view[0]);
@@ -197,12 +242,11 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                     @Override
                     public void onClick(View v) {
                         linearLayout.setWeightSum(15);
-                        linearLayout.setPadding(32, 0, 32, 0);
                         for (int i = 0; i < view.length; i++) {
                             view[i].setVisibility(View.GONE);;
                         }
-                        addSpendCategory.setVisibility(View.VISIBLE);
-                        addSpendCategory.setLayoutParams(new LinearLayout.LayoutParams(
+                        addCategory.setVisibility(View.VISIBLE);
+                        addCategory.setLayoutParams(new LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
                         ));
                         linearLayout.setBackgroundResource(R.color.colorBackground);
@@ -219,7 +263,11 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                             return;
                         }
                         try {
-                            DB.AddCategory(title, "expenses");
+                            if (isExpenses) {
+                                DB.AddCategory(title, "expenses");
+                            } else {
+                                DB.AddCategory(title, "income");
+                            }
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -228,8 +276,8 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                         for (int i = 0; i < view.length; i++) {
                             view[i].setVisibility(View.GONE);
                         }
-                        addSpendCategory.setVisibility(View.VISIBLE);
-                        addSpendCategory.setLayoutParams(new LinearLayout.LayoutParams(
+                        addCategory.setVisibility(View.VISIBLE);
+                        addCategory.setLayoutParams(new LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 15
                         ));
                         linearLayout.setBackgroundResource(R.color.colorBackground);
@@ -244,6 +292,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
     private void setData(List<Category> categoryList) {
         ArrayList<PieEntry> entries = new ArrayList<>();
+        chart.animateY(1400, Easing.EaseInOutQuad);
 
         // NOTE: The order of the entries when being added to the entries array determines their position around the center of
         // the chart.
@@ -252,7 +301,7 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
             for (int i = 0; i < categoryList.size(); i++) {
                 entries.add(new PieEntry((float) categoryList.get(i).total,
                         categoryList.get(i).title));
-                chart.setDrawEntryLabels(true);
+                chart.setDrawEntryLabels(false);
                 chart.setUsePercentValues(true);
             }
 
@@ -265,7 +314,8 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setDrawIcons(false);
-        dataSet.setDrawValues(false);
+        dataSet.setDrawValues(true);
+        dataSet.setValueTextSize(17f);
 
         dataSet.setSliceSpace(3f);
         dataSet.setIconsOffset(new MPPointF(0, 40));
@@ -275,25 +325,9 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
 
         ArrayList<Integer> colors = new ArrayList<>();
 
-        /*for (int c : ColorTemplate.VORDIPLOM_COLORS)
-            colors.add(c);
-
-        for (int c : ColorTemplate.JOYFUL_COLORS)
-            colors.add(c);
-
-        for (int c : ColorTemplate.COLORFUL_COLORS)
-            colors.add(c);
-
-        for (int c : ColorTemplate.LIBERTY_COLORS)
-            colors.add(c);
-
-        for (int c : ColorTemplate.PASTEL_COLORS)
-            colors.add(c);*/
-
-        colors.add(ColorTemplate.getHoloBlue());
-        colors.add(Color.BLUE);
-        colors.add(R.color.fabColor);
-        colors.add(Color.WHITE);
+        for (int i : colorsArray) {
+            colors.add(i);
+        }
 
         dataSet.setColors(colors);
         //dataSet.setSelectionShift(0f);
@@ -352,18 +386,6 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
         return true;
     }
 
-    @SuppressLint("ResourceAsColor")
-    public void drawCircle(float r) {
-        int screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
-        int screenHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
-        Canvas canvas = new Canvas();
-        Paint paint = new Paint();
-        paint.setColor(R.color.colorBlack);
-        paint.setStyle(Paint.Style.FILL);
-        //canvas.drawCircle((float) (screenWidth / 2.0), (float) (screenHeight / 2.0), r, paint);
-        canvas.drawCircle(0, 0, r, paint);
-    }
-
     public View[] addCategory() {
         EditText name = new EditText(getContext());
         name.setLayoutParams(new LinearLayout.LayoutParams(
@@ -395,5 +417,16 @@ public class MainFragment extends Fragment implements OnChartValueSelectedListen
                 0, 8));
         linearLayout.setPadding(16, 4, 16, 4);
         return new View[] {name, linearLayout, add, cancel};
+    }
+
+    public void drawRV() {
+        try {
+            adapter = new FragmentMainCategoryAdapter(getContext(),
+                    getLayoutInflater(), categoryList, getFragmentManager(), colorsArray);
+            recyclerView.setAdapter(adapter);
+            recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

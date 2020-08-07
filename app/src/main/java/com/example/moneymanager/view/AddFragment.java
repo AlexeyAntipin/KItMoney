@@ -47,6 +47,7 @@ public class AddFragment extends Fragment {
     private List<String> cur = new ArrayList<>();
     private Transaction transaction = new Transaction();
     private Button addExpensive, addIncome, cancel, accept;
+    private boolean isExpenses = true;
 
     @Nullable
     @Override
@@ -137,6 +138,7 @@ public class AddFragment extends Fragment {
         addIncome.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                isExpenses = false;
                 transaction.transaction_type = "income";
                 chooseCategory.setAdapter(incomeCategoriesArrayAdapter);
                 addIncome.setBackgroundResource(R.drawable.button_add_income_with_stroke);
@@ -147,6 +149,7 @@ public class AddFragment extends Fragment {
         addExpensive.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                isExpenses = true;
                 transaction.transaction_type = "expenses";
                 chooseCategory.setAdapter(spendCategoriesArrayAdapter);
                 addExpensive.setBackgroundResource(R.drawable.button_add_expensive);
@@ -183,7 +186,7 @@ public class AddFragment extends Fragment {
                 }
                 getFragmentManager()
                         .beginTransaction()
-                        .replace(R.id.fragment_host, new MainFragment())
+                        .replace(R.id.fragment_host, new MainFragment(isExpenses))
                         .commit();
             }
         });
@@ -193,7 +196,7 @@ public class AddFragment extends Fragment {
             public void onClick(View v) {
                 getFragmentManager()
                         .beginTransaction()
-                        .replace(R.id.fragment_host, new MainFragment())
+                        .replace(R.id.fragment_host, new MainFragment(isExpenses))
                         .commit();
             }
         });

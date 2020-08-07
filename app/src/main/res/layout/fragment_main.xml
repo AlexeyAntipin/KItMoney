@@ -44,12 +44,19 @@
             app:layout_constraintEnd_toEndOf="parent">
 
                 <Button
-                    android:id="@+id/addSpendCategory"
+                    android:id="@+id/addCategory"
                     android:layout_width="match_parent"
                     android:layout_height="0px"
                     android:layout_weight="15"
-                    android:background="@drawable/rounded_button_for_new_category_accounts"
-                    android:text="Добавить категорию расходов" />
+                    android:background="@drawable/rounded_button_for_new_category_accounts" />
         </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="90dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

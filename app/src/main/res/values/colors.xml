@@ -15,4 +15,24 @@
     <color name="plusColor">#EBE126</color>
     <color name="colorRed">#C00A0A</color>
     <color name="colorGreen">#0E5403</color>
+    <color name="diagramColor1">#F3900C</color>
+    <color name="diagramColor2">#3C1AA7</color>
+    <color name="diagramColor3">#F9B977</color>
+    <color name="diagramColor4">#11609C</color>
+    <color name="diagramColor5">#65B2CB</color>
+    <color name="diagramColor6">#F17389</color>
+    <color name="diagramColor7">#F3CB0C</color>
+    <color name="diagramColor8">#93E86E</color>
+    <color name="diagramColor9">#2E3983</color>
+    <color name="diagramColor10">#71AD2B</color>
+    <color name="diagramColor11">#A52959</color>
+    <color name="diagramColor12">#BF9730</color>
+    <color name="diagramColor13">#1E786C</color>
+    <color name="diagramColor14">#BFBC30</color>
+    <color name="diagramColor15">#5C2680</color>
+    <color name="diagramColor16">#BF6B30</color>
+    <color name="diagramColor17">#2C7335</color>
+    <color name="diagramColor18">#958639</color>
+    <color name="diagramColor19">#3D2E66</color>
+    <color name="diagramColor20">#953D39</color>
 </resources>

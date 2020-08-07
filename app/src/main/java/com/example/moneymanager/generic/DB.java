@@ -257,10 +257,10 @@ public class DB {
         Connections.acquire();
         List<Category> categoryList = new ArrayList<>();
 
-            String query = String.format("SELECT SUM(sum) as sum, title, transaction_id FROM transactions t " +
+            String query = String.format("SELECT SUM(sum) as sum, title, category_id FROM transactions t " +
                     "Left join category c on t.category_id = c.id " +
-                    "WHERE date > '%s' and date < '%s' and type = '%s' " +
-                    "Group by title, transaction_id", date1, date2, "expenses");
+                    "WHERE date >= '%s' and date < '%s' and type = '%s' " +
+                    "Group by title, category_id", date1, date2, "expenses");
             Cursor result = Registry.DB.rawQuery(query, null);
             if (result.moveToFirst()) {
                 do {
@@ -270,6 +270,27 @@ public class DB {
                     categoryList.add(category);
                 } while (result.moveToNext());
             }
+        Connections.release();
+        return categoryList;
+    }
+
+    public static List<Category> GetIncomeCategoriesByTime(String date1, String date2) throws InterruptedException {
+        Connections.acquire();
+        List<Category> categoryList = new ArrayList<>();
+
+        String query = String.format("SELECT SUM(sum) as sum, title, category_id FROM transactions t " +
+                "Left join category c on t.category_id = c.id " +
+                "WHERE date > '%s' and date < '%s' and type = '%s' " +
+                "Group by title, category_id", date1, date2, "income");
+        Cursor result = Registry.DB.rawQuery(query, null);
+        if (result.moveToFirst()) {
+            do {
+                Category category = new Category();
+                category.total = result.getInt(result.getColumnIndex("sum"));
+                category.title = result.getString(result.getColumnIndex("title"));
+                categoryList.add(category);
+            } while (result.moveToNext());
+        }
         Connections.release();
         return categoryList;
     }

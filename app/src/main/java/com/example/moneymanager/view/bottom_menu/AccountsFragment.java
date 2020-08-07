@@ -75,8 +75,7 @@ public class AccountsFragment extends Fragment {
                         callback = new SimpleItemTouchHelperCallback(aca2);
                         itemTouchHelper = new ItemTouchHelper(callback);
                         itemTouchHelper.attachToRecyclerView(recyclerView);
-                        swipeHelper.setRecyclerView(recyclerView);
-                        swipeHelper.attachSwipe();
+                        instantiateSwipeHelper();
                         break;
                     case Handlers.redraw_Cancel:
                         AccountCategoryAdapter aca1 =
@@ -85,6 +84,8 @@ public class AccountsFragment extends Fragment {
                         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
                         callback = new SimpleItemTouchHelperCallback(aca1);
                         itemTouchHelper = new ItemTouchHelper(callback);
+                        itemTouchHelper.attachToRecyclerView(recyclerView);
+                        instantiateSwipeHelper();
                         break;
                 }
 
@@ -96,37 +97,10 @@ public class AccountsFragment extends Fragment {
         recyclerView.setAdapter(aca);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         callback = new SimpleItemTouchHelperCallback(aca);
-        itemTouchHelper = new ItemTouchHelper((ItemTouchHelper.Callback) callback);
+        itemTouchHelper = new ItemTouchHelper(callback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
-        swipeHelper = new SwipeHelper(getContext(), recyclerView) {
-            @Override
-            public void instantiateUnderlayButton(RecyclerView.ViewHolder viewHolder, List<UnderlayButton> underlayButtons) {
-                underlayButtons.add(new SwipeHelper.UnderlayButton(
-                        "",
-                        R.drawable.delete_category,
-                        Color.parseColor("#F03524"),
-                        new SwipeHelper.UnderlayButtonClickListener() {
-                            @Override
-                            public void onClick(int pos) throws InterruptedException {
-                                DB.DeleteCategoryAccount(accounts.get(pos).id);
-                                Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
-                            }
-                        }
-                ));
-
-                underlayButtons.add(new SwipeHelper.UnderlayButton(
-                        "",
-                        0,
-                        Color.parseColor("#EDD015"),
-                        new SwipeHelper.UnderlayButtonClickListener() {
-                            @Override
-                            public void onClick(int pos) {
-                            }
-                        }
-                ));
-            }
-        };
+        instantiateSwipeHelper();
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -254,5 +228,36 @@ public class AccountsFragment extends Fragment {
 
     public static void onStartDrag(RecyclerView.ViewHolder viewHolder) {
         itemTouchHelper.startDrag(viewHolder);
+    }
+
+    public void instantiateSwipeHelper() {
+        swipeHelper = new SwipeHelper(getContext(), recyclerView) {
+            @Override
+            public void instantiateUnderlayButton(RecyclerView.ViewHolder viewHolder, List<UnderlayButton> underlayButtons) {
+                underlayButtons.add(new SwipeHelper.UnderlayButton(
+                        "",
+                        R.drawable.delete_category,
+                        Color.parseColor("#F03524"),
+                        new SwipeHelper.UnderlayButtonClickListener() {
+                            @Override
+                            public void onClick(int pos) throws InterruptedException {
+                                DB.DeleteCategoryAccount(accounts.get(pos).id);
+                                Handlers.redrawAccounts.sendEmptyMessage(Handlers.redraw_OK);
+                            }
+                        }
+                ));
+
+                underlayButtons.add(new SwipeHelper.UnderlayButton(
+                        "",
+                        0,
+                        Color.parseColor("#EDD015"),
+                        new SwipeHelper.UnderlayButtonClickListener() {
+                            @Override
+                            public void onClick(int pos) {
+                            }
+                        }
+                ));
+            }
+        };
     }
 }

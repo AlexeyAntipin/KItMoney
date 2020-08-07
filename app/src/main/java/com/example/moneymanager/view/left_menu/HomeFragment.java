@@ -23,7 +23,7 @@ public class HomeFragment extends Fragment {
 
         getFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_host, new MainFragment())
+                .replace(R.id.fragment_host, new MainFragment(true))
                 .commit();
 
         TabLayout tabLayout = root.findViewById(R.id.tabLayout);
@@ -36,7 +36,7 @@ public class HomeFragment extends Fragment {
                 Fragment fragment;
                 switch (position) {
                     case 0:
-                        fragment = new MainFragment();
+                        fragment = new MainFragment(true);
                         break;
                     case 1:
                         fragment = new AccountsFragment();
