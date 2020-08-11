@@ -16,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -72,6 +73,10 @@ public class AccountsFragment extends Fragment {
                                 new AccountCategoryAdapter(getContext(), getLayoutInflater(), accounts);
                         recyclerView.setAdapter(aca2);
                         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+                        RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+                        itemAnimator.setAddDuration(500);
+                        itemAnimator.setRemoveDuration(500);
+                        recyclerView.setItemAnimator(itemAnimator);
                         callback = new SimpleItemTouchHelperCallback(aca2);
                         itemTouchHelper = new ItemTouchHelper(callback);
                         itemTouchHelper.attachToRecyclerView(recyclerView);
@@ -95,6 +100,10 @@ public class AccountsFragment extends Fragment {
 
         AccountCategoryAdapter aca = new AccountCategoryAdapter(getContext(), getLayoutInflater(), accounts);
         recyclerView.setAdapter(aca);
+        RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+        itemAnimator.setAddDuration(500);
+        itemAnimator.setRemoveDuration(500);
+        recyclerView.setItemAnimator(itemAnimator);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         callback = new SimpleItemTouchHelperCallback(aca);
         itemTouchHelper = new ItemTouchHelper(callback);
